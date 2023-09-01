@@ -4,12 +4,31 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WebSocket Client</title>
+    <style>
+        canvas {
+            border: 1px solid black;
+            width: 100%;
+        }
+
+        .flex {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        body, html {
+            height: 100%;
+            margin: 0;
+        }
+    </style>
 </head>
 <body>
     <label for="inputMessage"></label>
     <input type="text" id="inputMessage" placeholder="Enter your name">
     <button onclick="sendMessage()">Send Greeting</button>
-    <canvas id="map"></canvas>
+    <div class="flex">
+        <canvas id="map"></canvas>
+    </div>
     <div id="response"></div>
     <script type="module" src="Client.mjs"></script>
 </body>
