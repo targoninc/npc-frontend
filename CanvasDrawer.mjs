@@ -8,10 +8,14 @@ export class MapDrawer {
         this.textures = {
             water: this.getImage("water"),
             forest: this.getImage("forest"),
-            island: [
-                this.getImage("island_1"),
-                this.getImage("island_2"),
+            desert: [
+                this.getImage("desert_1"),
+                this.getImage("desert_2"),
             ],
+            swamp: [
+                this.getImage("swamp_1"),
+                this.getImage("swamp_2"),
+            ]
         }
     }
 
