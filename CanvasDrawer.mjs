@@ -18,7 +18,6 @@ export class MapDrawer {
 
     drawTiles() {
         this.tiles.forEach(tile => {
-            console.log(tile);
             this.drawTile(tile);
         });
     }
@@ -32,9 +31,9 @@ export class MapDrawer {
     }
 
     drawTile(tile) {
-        this.drawRect(tile.x, tile.y, tile.size * this.getWidthFactor(), tile.size * this.getHeightFactor(), tile.color);
+        this.drawRect(tile.x * this.getWidthFactor(), tile.y * this.getHeightFactor(), tile.size * this.getWidthFactor(), tile.size * this.getHeightFactor(), tile.color);
         if (tile.texture) {
-            this.drawTexturedRect(tile.x, tile.y, tile.size * this.getWidthFactor(), tile.size * this.getHeightFactor(), tile.texture);
+            this.drawTexturedRect(tile.x * this.getWidthFactor(), tile.y * this.getHeightFactor(), tile.size * this.getWidthFactor(), tile.size * this.getHeightFactor(), tile.texture);
         }
     }
 
