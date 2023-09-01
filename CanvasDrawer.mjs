@@ -13,13 +13,20 @@ export class MapDrawer {
     drawMap(map) {
         this.tiles = map;
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-
+        this.drawTiles();
     }
 
-    getImage(url) {
-        const img = new Image();
-        img.src = url;
-        return img;
+    drawTiles() {
+        this.tiles.forEach(tile => {
+            this.drawTile(tile);
+        });
+    }
+
+    drawTile(tile) {
+        this.drawRect(tile.x, tile.y, tile.size, tile.size, tile.color);
+        if (tile.texture) {
+            this.drawTexturedRect(tile.x, tile.y, tile.size, tile.size, tile.texture);
+        }
     }
 
     /**

@@ -1,4 +1,6 @@
 import {Message} from "./Message.mjs";
+import {DataLayer} from "./DataLayer.mjs";
+import {DataHandler} from "./DataHandler.mjs";
 
 export class MessageHandler {
     constructor(host, port) {
@@ -16,6 +18,11 @@ export class MessageHandler {
         switch (message.type) {
             case 'response':
                 document.getElementById('response').textContent = message.data;
+                break;
+            case 'worldResponse':
+                const world = message.data;
+                DataLayer.save('world', world);
+                DataHandler.loadWorld();
                 break;
             case 'error':
                 console.error(message.data);
