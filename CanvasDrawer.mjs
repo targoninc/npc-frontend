@@ -18,14 +18,23 @@ export class MapDrawer {
 
     drawTiles() {
         this.tiles.forEach(tile => {
+            console.log(tile);
             this.drawTile(tile);
         });
     }
 
+    getWidthFactor() {
+        return this.canvas.width / 100;
+    }
+
+    getHeightFactor() {
+        return this.canvas.height / 100;
+    }
+
     drawTile(tile) {
-        this.drawRect(tile.x, tile.y, tile.size, tile.size, tile.color);
+        this.drawRect(tile.x, tile.y, tile.size * this.getWidthFactor(), tile.size * this.getHeightFactor(), tile.color);
         if (tile.texture) {
-            this.drawTexturedRect(tile.x, tile.y, tile.size, tile.size, tile.texture);
+            this.drawTexturedRect(tile.x, tile.y, tile.size * this.getWidthFactor(), tile.size * this.getHeightFactor(), tile.texture);
         }
     }
 
