@@ -4,6 +4,21 @@ export class MapDrawer {
         this.ctx = canvas.getContext('2d');
         this.canvas.width = size;
         this.canvas.height = size;
+
+        this.textures = {
+            water: this.getImage("water"),
+            forest: this.getImage("forest"),
+            island: [
+                this.getImage("island_1"),
+                this.getImage("island_2"),
+            ],
+        }
+    }
+
+    getImage(url) {
+        const image = document.createElement('img');
+        image.src = "./images/" + url + ".gif";
+        return image;
     }
 
     /**
@@ -23,17 +38,25 @@ export class MapDrawer {
     }
 
     getWidthFactor() {
-        return this.canvas.width / 100;
+        return this.canvas.width / 200;
     }
 
     getHeightFactor() {
-        return this.canvas.height / 100;
+        return this.canvas.height / 200;
     }
 
     drawTile(tile) {
-        this.drawRect(tile.x * this.getWidthFactor(), tile.y * this.getHeightFactor(), tile.size * this.getWidthFactor(), tile.size * this.getHeightFactor(), tile.color);
-        if (tile.texture) {
-            this.drawTexturedRect(tile.x * this.getWidthFactor(), tile.y * this.getHeightFactor(), tile.size * this.getWidthFactor(), tile.size * this.getHeightFactor(), tile.texture);
+        const tileTextures = this.textures[tile.type];
+        if (tileTextures !== undefined) {
+            let texture;
+            if (tileTextures.constructor === Array) {
+                texture = tileTextures[Math.floor(Math.random() * tileTextures.length)];
+            } else {
+                texture = this.textures[tile.type];
+            }
+            this.drawTexturedRect(tile.x * this.getWidthFactor(), tile.y * this.getHeightFactor(), tile.size * this.getWidthFactor(), tile.size * this.getHeightFactor(), texture);
+        } else {
+            this.drawRect(tile.x * this.getWidthFactor(), tile.y * this.getHeightFactor(), tile.size * this.getWidthFactor(), tile.size * this.getHeightFactor(), tile.color);
         }
     }
 
@@ -46,7 +69,9 @@ export class MapDrawer {
      * @param texture {CanvasImageSource}
      */
     drawTexturedRect(x, y, width, height, texture) {
-        this.ctx.drawImage(texture, x, y, width, height);
+        texture.addEventListener('load', () => {
+            this.ctx.drawImage(texture, x, y, width, height);
+        }, { once: true });
     }
 
     /**
