@@ -65,8 +65,50 @@ export class MapDrawer {
     }
 
     drawTiles() {
-        this.map.tiles.forEach(tile => {
-            this.drawTile(tile);
+        this.preloadTextures(() => {
+            this.map.tiles.forEach(tile => {
+                this.drawTile(tile);
+            });
+            const minHeight = Math.min(...this.map.tiles.map(tile => tile.height));
+            const maxHeight = Math.max(...this.map.tiles.map(tile => tile.height));
+            this.map.tiles.forEach(tile => {
+                this.drawTileHeight(tile, minHeight, maxHeight);
+            });
+        });
+    }
+
+    preloadTextures(callback) {
+        let resolved = 0;
+        let toLoad = Object.entries(this.textures).length;
+        for (let textureBatchName in this.textures) {
+            let textureBatch = this.textures[textureBatchName];
+            if (textureBatch.constructor === Array) {
+                toLoad += textureBatch.length - 1;
+                console.log(textureBatch);
+                textureBatch.forEach((texture) => {
+                    console.log(`Preloading from batch ${texture.src}`);
+                    this.preloadTexture(texture, () => {
+                        resolved++;
+                        if (resolved === toLoad) {
+                            callback();
+                        }
+                    });
+                });
+            } else {
+                console.log(`Preloading single ${textureBatch.src}`);
+                this.preloadTexture(textureBatch, () => {
+                    resolved++;
+                    if (resolved === toLoad) {
+                        callback();
+                    }
+                });
+            }
+        }
+    }
+
+    preloadTexture(texture, callback) {
+        texture.addEventListener('load', () => {
+            callback();
         });
     }
 
@@ -93,6 +135,19 @@ export class MapDrawer {
         }
     }
 
+    drawTileHeight(tile, minHeight, maxHeight) {
+        let height = tile.height ?? 0;
+        height = (height - minHeight) / (maxHeight - minHeight);
+        height = this.getSteppedHeight(height, 10);
+        const color = 255 * height;
+        const alpha = Math.abs(height - 0.5);
+        this.drawRect(tile.x * this.getWidthFactor(), tile.y * this.getHeightFactor(), tile.size * this.getWidthFactor(), tile.size * this.getHeightFactor(), `rgba(${color}, ${color}, ${color}, ${alpha})`);
+    }
+
+    getSteppedHeight(height, steps) {
+        return Math.floor(height * steps) / steps;
+    }
+
     /**
      * Draws a rectangle with a texture
      * @param x {number}
@@ -102,11 +157,7 @@ export class MapDrawer {
      * @param texture {CanvasImageSource}
      */
     drawTexturedRect(x, y, width, height, texture) {
-        this.loadingImages++;
-        texture.addEventListener('load', () => {
-            this.ctx.drawImage(texture, x, y, width, height);
-            this.loadingImages--;
-        }, { once: true });
+        this.ctx.drawImage(texture, x, y, width, height);
     }
 
     /**
