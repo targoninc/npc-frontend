@@ -84,9 +84,7 @@ export class MapDrawer {
             let textureBatch = this.textures[textureBatchName];
             if (textureBatch.constructor === Array) {
                 toLoad += textureBatch.length - 1;
-                console.log(textureBatch);
                 textureBatch.forEach((texture) => {
-                    console.log(`Preloading from batch ${texture.src}`);
                     this.preloadTexture(texture, () => {
                         resolved++;
                         if (resolved === toLoad) {
@@ -95,7 +93,6 @@ export class MapDrawer {
                     });
                 });
             } else {
-                console.log(`Preloading single ${textureBatch.src}`);
                 this.preloadTexture(textureBatch, () => {
                     resolved++;
                     if (resolved === toLoad) {
