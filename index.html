@@ -4,43 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WebSocket Client</title>
-    <style>
-        canvas {
-            border: 1px solid black;
-            max-width: 100%;
-            max-height: 100%;
-            width: 1000px;
-            height: 1000px;
-        }
-
-        .canvas-container {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100%;
-        }
-
-        .flex {
-            display: flex;
-            gap: 5px;
-        }
-
-        body, html {
-            height: 100%;
-            max-height: 100%;
-            display: flex;
-            flex-direction: column;
-            margin: 0;
-        }
-    </style>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link href="style.css" rel="stylesheet">
 </head>
 <body>
-    <div>
-        <label for="inputMessage"></label>
-        <input type="text" id="inputMessage" placeholder="Enter your name">
-        <button onclick="sendMessage()">Send Greeting</button>
-    </div>
     <div class="canvas-container">
+        <div id="overlay"></div>
         <canvas id="map"></canvas>
     </div>
     <div id="response"></div>

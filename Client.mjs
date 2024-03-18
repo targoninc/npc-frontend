@@ -1,10 +1,12 @@
 import {MessageHandler} from "./MessageHandler.mjs";
 import {Message} from "./Message.mjs";
+import {OverlayAdapter} from "./OverlayAdapter.mjs";
 
-const messageHandler = new MessageHandler("localhost", 3000);
+const messageHandler = new MessageHandler("localhost", 3456);
 
-window.sendMessage = () => {
-    const inputElem = document.getElementById('inputMessage');
-    const message = new Message('greeting', inputElem.value);
+window.sendMessage = (type, data = null) => {
+    const message = new Message(type, data);
     messageHandler.send(message);
 }
+
+OverlayAdapter.addRegenerateButton();

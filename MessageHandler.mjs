@@ -1,5 +1,6 @@
 import {Message} from "./Message.mjs";
 import {DataHandler} from "./DataHandler.mjs";
+import {OverlayAdapter} from "./OverlayAdapter.mjs";
 
 export class MessageHandler {
     constructor(host, port) {
@@ -10,6 +11,11 @@ export class MessageHandler {
 
     sendWorldRequest() {
         const message = new Message('worldRequest', null);
+        this.send(message);
+    }
+
+    sendGenerateWorld() {
+        const message = new Message('generateWorld', null);
         this.send(message);
     }
 
@@ -27,11 +33,17 @@ export class MessageHandler {
                 break;
             case 'worldResponse':
                 DataHandler.loadWorld(message.data);
+                OverlayAdapter.removeProgressText();
+                break;
+            case 'progress':
+                OverlayAdapter.handleProgressUpdate(message);
                 break;
             case 'error':
+                if (message.data === 'World is not generated yet') {
+                    this.sendGenerateWorld();
+                }
                 console.error(message.data);
                 break;
-            // Handle other message types as needed
         }
     }
 }
