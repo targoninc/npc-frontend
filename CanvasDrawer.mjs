@@ -38,23 +38,23 @@ export class MapDrawer {
      * @param map {Array<MapTile>}
      */
     drawMap(map) {
-        this.tiles = map;
+        this.map = map;
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         this.drawTiles();
     }
 
     drawTiles() {
-        this.tiles.forEach(tile => {
+        this.map.tiles.forEach(tile => {
             this.drawTile(tile);
         });
     }
 
     getWidthFactor() {
-        return this.canvas.width / 200;
+        return this.canvas.width / this.map.resolution;
     }
 
     getHeightFactor() {
-        return this.canvas.height / 200;
+        return this.canvas.height / this.map.resolution;
     }
 
     drawTile(tile) {
