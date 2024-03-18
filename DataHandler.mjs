@@ -6,5 +6,6 @@ export class DataHandler {
         const mapDrawer = new MapDrawer(canvas, 3000);
         console.log("Drawing map...");
         mapDrawer.drawMap(world.map);
+        mapDrawer.initEvents();
     }
 }

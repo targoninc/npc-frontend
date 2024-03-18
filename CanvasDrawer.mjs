@@ -24,7 +24,9 @@ export class MapDrawer {
                 this.getImage("valley_1"),
                 this.getImage("valley_2"),
             ]
-        }
+        };
+
+        this.loadingImages = 0;
     }
 
     getImage(url) {
@@ -36,11 +38,30 @@ export class MapDrawer {
     /**
      *
      * @param map {Array<MapTile>}
+     * @param allowCache
      */
-    drawMap(map) {
+    drawMap(map, allowCache = false) {
+        if (allowCache && this.cachedMap) {
+            this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+            this.ctx.putImageData(this.cachedMap, 0, 0);
+            return;
+        }
         this.map = map;
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         this.drawTiles();
+        this.cacheMap();
+    }
+
+    cacheMap() {
+        const interval = setInterval(() => {
+            if (this.loadingImages === 0) {
+                this.cachedMap = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
+                console.log("Map cached");
+                clearInterval(interval);
+            } else {
+                console.log(`Waiting for ${this.loadingImages} images to load...`);
+            }
+        }, 100);
     }
 
     drawTiles() {
@@ -81,8 +102,10 @@ export class MapDrawer {
      * @param texture {CanvasImageSource}
      */
     drawTexturedRect(x, y, width, height, texture) {
+        this.loadingImages++;
         texture.addEventListener('load', () => {
             this.ctx.drawImage(texture, x, y, width, height);
+            this.loadingImages--;
         }, { once: true });
     }
 
@@ -97,5 +120,64 @@ export class MapDrawer {
     drawRect(x, y, width, height, color) {
         this.ctx.fillStyle = color;
         this.ctx.fillRect(x, y, width, height);
+    }
+
+    drawText(x, y, text, color, fontSize = 52) {
+        this.ctx.fillStyle = color;
+        this.ctx.font = fontSize + "px Arial";
+        this.ctx.fillText(text, x, y);
+    }
+
+    getTileAt(x, y) {
+        for (let i = 0; i < this.map.tiles.length; i++) {
+            let tile = this.map.tiles[i];
+            if (tile.x === x && tile.y === y) {
+                return tile;
+            }
+        }
+        return null;
+    }
+
+    getTileAtPosition(x, y) {
+        let tileSize = Math.min(this.canvas.width, this.canvas.height) / this.map.resolution;
+        tileSize = (Math.min(this.canvas.clientWidth, this.canvas.clientHeight) / Math.min(this.canvas.width, this.canvas.height)) * tileSize;
+        const tileX = Math.floor(x / tileSize);
+        const tileY = Math.floor(y / tileSize);
+        return this.getTileAt(tileX, tileY);
+    }
+
+    getTileAtMousePosition(e) {
+        const rect = this.canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        return this.getTileAtPosition(x, y);
+    }
+
+    initEvents() {
+        let rendering = false;
+        this.canvas.onmousemove = (e) => {
+            if (!rendering) {
+                rendering = true;
+                requestAnimationFrame(() => {
+                    this.handleMouseMove(e);
+                    rendering = false;
+                });
+            }
+        }
+    }
+
+    handleMouseMove(e) {
+        const tile = this.getTileAtMousePosition(e);
+        if (tile !== null) {
+            this.drawMap(this.map, true);
+            this.drawRect(tile.x * this.getWidthFactor(), tile.y * this.getHeightFactor(), tile.size * this.getWidthFactor(), tile.size * this.getHeightFactor(), 'rgba(255, 255, 255, 0.5)');
+            const hoverText = `(${tile.x}, ${tile.y}) - ${tile.type}`;
+            const fontSize = 52;
+            const margin = fontSize * .5;
+            this.drawRect(tile.x * this.getWidthFactor() - margin, tile.y * this.getHeightFactor() - fontSize - (.5 * margin), hoverText.length * (fontSize * .5) + (2 * margin), fontSize + (2 * margin), 'rgba(0, 0, 0, 0.5)');
+            this.drawText(tile.x * this.getWidthFactor(), tile.y * this.getHeightFactor(), hoverText, 'white', fontSize);
+        } else {
+            this.drawMap(this.map, true);
+        }
     }
 }
