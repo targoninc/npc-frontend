@@ -195,11 +195,19 @@ export class MapDrawer {
         return this.getTileAt(tileX, tileY);
     }
 
+    getBuildingOnTile(tile) {
+        return this.map.buildings.find(building => building.coordinates.x === tile.x && building.coordinates.y === tile.y);
+    }
+
     getTileAtMousePosition(e) {
         const rect = this.canvas.getBoundingClientRect();
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
-        return this.getTileAtPosition(x, y);
+        const tile = this.getTileAtPosition(x, y);
+        if (tile) {
+            tile.building = this.getBuildingOnTile(tile);
+        }
+        return tile;
     }
 
     initEvents() {
@@ -219,12 +227,30 @@ export class MapDrawer {
         const tile = this.getTileAtMousePosition(e);
         if (tile !== null) {
             this.drawMap(this.map, true);
-            this.drawRect(tile.x * this.getWidthFactor(), tile.y * this.getHeightFactor(), tile.size * this.getWidthFactor(), tile.size * this.getHeightFactor(), 'rgba(255, 255, 255, 0.5)');
-            const hoverText = `(${tile.x}, ${tile.y}) - ${tile.type}`;
+            let technicalX = tile.x * this.getWidthFactor();
+            let technicalY = tile.y * this.getHeightFactor();
+            let tileSize = tile.size * this.getWidthFactor();
+            let hoverText = `(${tile.x}, ${tile.y}) - ${tile.type}`;
+            if (tile.building) {
+                hoverText += ` - ${tile.building.type}`;
+            }
             const fontSize = 52;
             const margin = fontSize * .5;
-            this.drawRect(tile.x * this.getWidthFactor() - margin, tile.y * this.getHeightFactor() - fontSize - (.5 * margin), hoverText.length * (fontSize * .5) + (2 * margin), fontSize + (2 * margin), 'rgba(0, 0, 0, 0.5)');
-            this.drawText(tile.x * this.getWidthFactor(), tile.y * this.getHeightFactor(), hoverText, 'white', fontSize);
+            this.drawRect(technicalX, technicalY, tileSize, tileSize, 'rgba(255, 255, 255, 0.5)');
+            let textY = technicalY - fontSize;
+            if (textY < .5 * margin) {
+                textY = .5 * margin;
+            }
+            let textX = technicalX;
+            if (textX < margin) {
+                textX = margin;
+            }
+            let textWidth = hoverText.length * (fontSize * .5) + (2 * margin);
+            if (textX + textWidth > this.canvas.width) {
+                textX = this.canvas.width - textWidth - margin;
+            }
+            this.drawRect(textX - margin, textY - (.5 * margin), textWidth, fontSize + (2 * margin), 'rgba(0, 0, 0, 0.5)');
+            this.drawText(textX, textY + fontSize, hoverText, 'white', fontSize);
         } else {
             this.drawMap(this.map, true);
         }
