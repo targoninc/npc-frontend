@@ -74,6 +74,7 @@ export class MapDrawer {
             this.map.tiles.forEach(tile => {
                 this.drawTileHeight(tile, minHeight, maxHeight);
             });
+            this.drawBuildings(this.map.buildings);
         });
     }
 
@@ -227,5 +228,27 @@ export class MapDrawer {
         } else {
             this.drawMap(this.map, true);
         }
+    }
+
+    /**
+     *
+     * @param buildings
+     */
+    drawBuildings(buildings) {
+        const maxSize = Math.max(...buildings.map(b => b.size));
+        buildings.forEach(building => {
+            this.drawBuilding(building, maxSize);
+        });
+    }
+
+    drawBuilding(building, maxSize) {
+        const x = building.coordinates.x * this.getWidthFactor();
+        const y = building.coordinates.y * this.getHeightFactor();
+        const relativeSize = building.size / maxSize;
+        const width = relativeSize * this.getWidthFactor();
+        const height = relativeSize * this.getHeightFactor();
+        const inset = ((1 * this.getWidthFactor()) - width) / 2;
+        const colorDeviation = (relativeSize * relativeSize) * 60;
+        this.drawRect(x + inset, y + inset, width, height, `rgba(${90 + colorDeviation},47,${30 + colorDeviation},1)`);
     }
 }
