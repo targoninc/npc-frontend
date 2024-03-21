@@ -1,5 +1,6 @@
 import {CanvasDrawer} from "./CanvasDrawer.mjs";
 import {MapEventHandler} from "./MapEventHandler.mjs";
+import {NumberGenerator} from "../NumberGenerator.mjs";
 
 export class MapDrawer {
     constructor(canvas, size) {
@@ -28,6 +29,7 @@ export class MapDrawer {
         this.eventHandler = new MapEventHandler(this, canvas);
         this.eventHandler.initialize();
         this.zoom = 1;
+        this.offset = {x: 0, y: 0};
         this.mapCaches = [];
         this.preloadDone = false;
     }
@@ -43,10 +45,10 @@ export class MapDrawer {
     }
 
     getTileAtPosition(x, y) {
-        let tileSize = Math.min(this.canvas.width, this.canvas.height) / this.map.resolution;
-        tileSize = (Math.min(this.canvas.clientWidth, this.canvas.clientHeight) / Math.min(this.canvas.width, this.canvas.height)) * tileSize / this.zoom;
-        const tileX = Math.floor(x / tileSize);
-        const tileY = Math.floor(y / tileSize);
+        let baseTileSize = Math.min(this.canvas.width, this.canvas.height) / this.map.resolution;
+        let tileSize = (Math.min(this.canvas.clientWidth, this.canvas.clientHeight) / Math.min(this.canvas.width, this.canvas.height)) * baseTileSize / this.zoom;
+        const tileX = Math.floor(x / tileSize) - Math.floor(this.offset.x / baseTileSize / this.zoom);
+        const tileY = Math.floor(y / tileSize) - Math.floor(this.offset.y / baseTileSize / this.zoom);
         return this.getTileAt(tileX, tileY);
     }
 
@@ -115,16 +117,16 @@ export class MapDrawer {
 
     getTileCoordinates(tile) {
         return {
-            x: tile.x * this.getWidthFactor() / this.zoom,
-            y: tile.y * this.getHeightFactor() / this.zoom,
+            x: (tile.x * this.getWidthFactor() + (this.offset.x / this.zoom)) / this.zoom,
+            y: (tile.y * this.getHeightFactor() + (this.offset.y / this.zoom)) / this.zoom,
             size: tile.size * this.getWidthFactor() / this.zoom
         };
     }
 
     getBuildingCoordinates(building) {
         return {
-            x: building.coordinates.x * this.getWidthFactor() / this.zoom,
-            y: building.coordinates.y * this.getHeightFactor() / this.zoom,
+            x: (building.coordinates.x * this.getWidthFactor() + (this.offset.x / this.zoom)) / this.zoom,
+            y: (building.coordinates.y * this.getHeightFactor() + (this.offset.y / this.zoom)) / this.zoom,
             size: building.size * this.getWidthFactor() / this.zoom
         };
     }
@@ -132,11 +134,13 @@ export class MapDrawer {
     drawTile(tile) {
         const tileTextures = this.textures[tile.type];
         const coords = this.getTileCoordinates(tile);
+        const tileSeed = tile.x * 1000 + tile.y;
 
         if (tileTextures !== undefined) {
             let texture;
             if (tileTextures.constructor === Array) {
-                texture = tileTextures[Math.floor(Math.random() * tileTextures.length)];
+                const textureIndex = NumberGenerator.random(0, tileTextures.length, tileSeed, true);
+                texture = tileTextures[textureIndex];
             } else {
                 texture = this.textures[tile.type];
             }
@@ -179,14 +183,22 @@ export class MapDrawer {
         this.mapCaches.push({zoom, image});
     }
 
+    move(x, y) {
+        this.offset.x += x;
+        this.offset.y += y;
+    }
+
     zoomOut() {
-        this.zoom = Math.max(1, this.zoom * 1.1);
-        this.drawMap(this.map, true);
+        this.zoom = Math.min(1, this.zoom * 1.1);
+        if (this.zoom === 1) {
+            this.offset = {x: 0, y: 0};
+        }
+        this.drawMap(this.map, false);
     }
 
     zoomIn() {
-        this.zoom = Math.min(10, this.zoom / 1.1);
-        this.drawMap(this.map, true);
+        this.zoom = Math.max(.1, this.zoom / 1.1);
+        this.drawMap(this.map, false);
     }
 
     /**
@@ -196,7 +208,7 @@ export class MapDrawer {
      */
     drawMap(map, allowCache = false) {
         if (allowCache && this.getCache(this.zoom)) {
-            this.canvasDrawer.redrawWithImage(this.getCache(this.zoom));
+            this.canvasDrawer.redrawWithImage(this.getCache(this.zoom), this.offset);
             return;
         }
         this.map = map;
@@ -204,8 +216,8 @@ export class MapDrawer {
         this.drawTiles();
     }
 
-    redraw() {
-        this.drawMap(this.map, true);
+    redraw(allowCache = false) {
+        this.drawMap(this.map, allowCache);
     }
 
     cacheMap() {

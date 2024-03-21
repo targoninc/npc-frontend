@@ -43,9 +43,9 @@ export class CanvasDrawer {
         return Math.floor(height * steps) / steps;
     }
 
-    redrawWithImage(image) {
+    redrawWithImage(image, offset) {
         this.clear();
-        this.ctx.putImageData(image, 0, 0);
+        this.ctx.putImageData(image, offset.x, offset.y);
     }
 
     clear() {
