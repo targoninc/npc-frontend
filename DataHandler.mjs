@@ -1,4 +1,4 @@
-import {MapDrawer} from "./CanvasDrawer.mjs";
+import {MapDrawer} from "./MapDrawer.mjs";
 
 export class DataHandler {
     static loadWorld(world) {

@@ -1,81 +1,10 @@
-export class MapDrawer {
-    constructor(canvas, size) {
+export class CanvasDrawer {
+    constructor(canvas, size, textures = {}) {
         this.canvas = canvas;
         this.ctx = canvas.getContext('2d');
         this.canvas.width = size;
         this.canvas.height = size;
-
-        this.textures = {
-            water: this.getImage("water"),
-            forest: this.getImage("forest"),
-            volcano: [
-                this.getImage("volcano_1"),
-                this.getImage("volcano_2"),
-            ],
-            desert: [
-                this.getImage("desert_1"),
-                this.getImage("desert_2"),
-            ],
-            swamp: [
-                this.getImage("swamp_1"),
-                this.getImage("swamp_2"),
-            ],
-            valley: [
-                this.getImage("valley_1"),
-                this.getImage("valley_2"),
-            ]
-        };
-
-        this.loadingImages = 0;
-    }
-
-    getImage(url) {
-        const image = document.createElement('img');
-        image.src = "./images/" + url + ".gif";
-        return image;
-    }
-
-    /**
-     *
-     * @param map {Array<MapTile>}
-     * @param allowCache
-     */
-    drawMap(map, allowCache = false) {
-        if (allowCache && this.cachedMap) {
-            this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-            this.ctx.putImageData(this.cachedMap, 0, 0);
-            return;
-        }
-        this.map = map;
-        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-        this.drawTiles();
-        this.cacheMap();
-    }
-
-    cacheMap() {
-        const interval = setInterval(() => {
-            if (this.loadingImages === 0) {
-                this.cachedMap = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
-                console.log("Map cached");
-                clearInterval(interval);
-            } else {
-                console.log(`Waiting for ${this.loadingImages} images to load...`);
-            }
-        }, 100);
-    }
-
-    drawTiles() {
-        this.preloadTextures(() => {
-            this.map.tiles.forEach(tile => {
-                this.drawTile(tile);
-            });
-            const minHeight = Math.min(...this.map.tiles.map(tile => tile.height));
-            const maxHeight = Math.max(...this.map.tiles.map(tile => tile.height));
-            this.map.tiles.forEach(tile => {
-                this.drawTileHeight(tile, minHeight, maxHeight);
-            });
-            this.drawBuildings(this.map.buildings);
-        });
+        this.textures = textures;
     }
 
     preloadTextures(callback) {
@@ -110,40 +39,17 @@ export class MapDrawer {
         });
     }
 
-    getWidthFactor() {
-        return this.canvas.width / this.map.resolution;
-    }
-
-    getHeightFactor() {
-        return this.canvas.height / this.map.resolution;
-    }
-
-    drawTile(tile) {
-        const tileTextures = this.textures[tile.type];
-        if (tileTextures !== undefined) {
-            let texture;
-            if (tileTextures.constructor === Array) {
-                texture = tileTextures[Math.floor(Math.random() * tileTextures.length)];
-            } else {
-                texture = this.textures[tile.type];
-            }
-            this.drawTexturedRect(tile.x * this.getWidthFactor(), tile.y * this.getHeightFactor(), tile.size * this.getWidthFactor(), tile.size * this.getHeightFactor(), texture);
-        } else {
-            this.drawRect(tile.x * this.getWidthFactor(), tile.y * this.getHeightFactor(), tile.size * this.getWidthFactor(), tile.size * this.getHeightFactor(), tile.color);
-        }
-    }
-
-    drawTileHeight(tile, minHeight, maxHeight) {
-        let height = tile.height ?? 0;
-        height = (height - minHeight) / (maxHeight - minHeight);
-        height = this.getSteppedHeight(height, 10);
-        const color = 255 * height;
-        const alpha = Math.abs(height - 0.5);
-        this.drawRect(tile.x * this.getWidthFactor(), tile.y * this.getHeightFactor(), tile.size * this.getWidthFactor(), tile.size * this.getHeightFactor(), `rgba(${color}, ${color}, ${color}, ${alpha})`);
-    }
-
     getSteppedHeight(height, steps) {
         return Math.floor(height * steps) / steps;
+    }
+
+    redrawWithImage(image) {
+        this.clear();
+        this.ctx.putImageData(image, 0, 0);
+    }
+
+    clear() {
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     }
 
     /**
@@ -177,104 +83,7 @@ export class MapDrawer {
         this.ctx.fillText(text, x, y);
     }
 
-    getTileAt(x, y) {
-        for (let i = 0; i < this.map.tiles.length; i++) {
-            let tile = this.map.tiles[i];
-            if (tile.x === x && tile.y === y) {
-                return tile;
-            }
-        }
-        return null;
-    }
-
-    getTileAtPosition(x, y) {
-        let tileSize = Math.min(this.canvas.width, this.canvas.height) / this.map.resolution;
-        tileSize = (Math.min(this.canvas.clientWidth, this.canvas.clientHeight) / Math.min(this.canvas.width, this.canvas.height)) * tileSize;
-        const tileX = Math.floor(x / tileSize);
-        const tileY = Math.floor(y / tileSize);
-        return this.getTileAt(tileX, tileY);
-    }
-
-    getBuildingOnTile(tile) {
-        return this.map.buildings.find(building => building.coordinates.x === tile.x && building.coordinates.y === tile.y);
-    }
-
-    getTileAtMousePosition(e) {
-        const rect = this.canvas.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-        const tile = this.getTileAtPosition(x, y);
-        if (tile) {
-            tile.building = this.getBuildingOnTile(tile);
-        }
-        return tile;
-    }
-
-    initEvents() {
-        let rendering = false;
-        this.canvas.onmousemove = (e) => {
-            if (!rendering) {
-                rendering = true;
-                requestAnimationFrame(() => {
-                    this.handleMouseMove(e);
-                    rendering = false;
-                });
-            }
-        }
-    }
-
-    handleMouseMove(e) {
-        const tile = this.getTileAtMousePosition(e);
-        if (tile !== null) {
-            this.drawMap(this.map, true);
-            let technicalX = tile.x * this.getWidthFactor();
-            let technicalY = tile.y * this.getHeightFactor();
-            let tileSize = tile.size * this.getWidthFactor();
-            let hoverText = `(${tile.x}, ${tile.y}) - ${tile.type}`;
-            if (tile.building) {
-                hoverText += ` - ${tile.building.type}`;
-            }
-            const fontSize = 52;
-            const margin = fontSize * .5;
-            this.drawRect(technicalX, technicalY, tileSize, tileSize, 'rgba(255, 255, 255, 0.5)');
-            let textY = technicalY - fontSize;
-            if (textY < .5 * margin) {
-                textY = .5 * margin;
-            }
-            let textX = technicalX;
-            if (textX < margin) {
-                textX = margin;
-            }
-            let textWidth = hoverText.length * (fontSize * .5) + (2 * margin);
-            if (textX + textWidth > this.canvas.width) {
-                textX = this.canvas.width - textWidth - margin;
-            }
-            this.drawRect(textX - margin, textY - (.5 * margin), textWidth, fontSize + (2 * margin), 'rgba(0, 0, 0, 0.5)');
-            this.drawText(textX, textY + fontSize, hoverText, 'white', fontSize);
-        } else {
-            this.drawMap(this.map, true);
-        }
-    }
-
-    /**
-     *
-     * @param buildings
-     */
-    drawBuildings(buildings) {
-        const maxSize = Math.max(...buildings.map(b => b.size));
-        buildings.forEach(building => {
-            this.drawBuilding(building, maxSize);
-        });
-    }
-
-    drawBuilding(building, maxSize) {
-        const x = building.coordinates.x * this.getWidthFactor();
-        const y = building.coordinates.y * this.getHeightFactor();
-        const relativeSize = building.size / maxSize;
-        const width = relativeSize * this.getWidthFactor();
-        const height = relativeSize * this.getHeightFactor();
-        const inset = ((1 * this.getWidthFactor()) - width) / 2;
-        const colorDeviation = (relativeSize * relativeSize) * 60;
-        this.drawRect(x + inset, y + inset, width, height, `rgba(${90 + colorDeviation},47,${30 + colorDeviation},1)`);
+    getAsImage() {
+        return this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
     }
 }
