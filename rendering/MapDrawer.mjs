@@ -44,7 +44,7 @@ export class MapDrawer {
 
     getTileAtPosition(x, y) {
         let tileSize = Math.min(this.canvas.width, this.canvas.height) / this.map.resolution;
-        tileSize = (Math.min(this.canvas.clientWidth, this.canvas.clientHeight) / Math.min(this.canvas.width, this.canvas.height)) * tileSize;
+        tileSize = (Math.min(this.canvas.clientWidth, this.canvas.clientHeight) / Math.min(this.canvas.width, this.canvas.height)) * tileSize / this.zoom;
         const tileX = Math.floor(x / tileSize);
         const tileY = Math.floor(y / tileSize);
         return this.getTileAt(tileX, tileY);
@@ -77,8 +77,7 @@ export class MapDrawer {
     }
 
     drawBuilding(building, maxSize) {
-        const x = building.coordinates.x * this.getWidthFactor();
-        const y = building.coordinates.y * this.getHeightFactor();
+        const {x, y} = this.getBuildingCoordinates(building);
         const relativeSize = building.size / maxSize;
         const width = relativeSize * this.getWidthFactor();
         const height = relativeSize * this.getHeightFactor();
@@ -114,12 +113,25 @@ export class MapDrawer {
         return this.canvas.height / this.map.resolution;
     }
 
+    getTileCoordinates(tile) {
+        return {
+            x: tile.x * this.getWidthFactor() / this.zoom,
+            y: tile.y * this.getHeightFactor() / this.zoom,
+            size: tile.size * this.getWidthFactor() / this.zoom
+        };
+    }
+
+    getBuildingCoordinates(building) {
+        return {
+            x: building.coordinates.x * this.getWidthFactor() / this.zoom,
+            y: building.coordinates.y * this.getHeightFactor() / this.zoom,
+            size: building.size * this.getWidthFactor() / this.zoom
+        };
+    }
+
     drawTile(tile) {
         const tileTextures = this.textures[tile.type];
-
-        const tileX = tile.x * this.getWidthFactor();
-        const tileY = tile.y * this.getHeightFactor();
-        const tileSize = tile.size * this.getWidthFactor();
+        const coords = this.getTileCoordinates(tile);
 
         if (tileTextures !== undefined) {
             let texture;
@@ -128,9 +140,9 @@ export class MapDrawer {
             } else {
                 texture = this.textures[tile.type];
             }
-            this.canvasDrawer.drawTexturedRect(tileX, tileY, tileSize, tileSize, texture);
+            this.canvasDrawer.drawTexturedRect(coords.x, coords.y, coords.size, coords.size, texture);
         } else {
-            this.canvasDrawer.drawRect(tileX, tileY, tileSize, tileSize, tile.color);
+            this.canvasDrawer.drawRect(coords.x, coords.y, coords.size, coords.size, tile.color);
         }
     }
 
@@ -140,7 +152,8 @@ export class MapDrawer {
         height = this.canvasDrawer.getSteppedHeight(height, 10);
         const color = 255 * height;
         const alpha = Math.abs(height - 0.5);
-        this.canvasDrawer.drawRect(tile.x * this.getWidthFactor(), tile.y * this.getHeightFactor(), tile.size * this.getWidthFactor(), tile.size * this.getHeightFactor(), `rgba(${color}, ${color}, ${color}, ${alpha})`);
+        const coords = this.getTileCoordinates(tile);
+        this.canvasDrawer.drawRect(coords.x, coords.y, coords.size, coords.size, `rgba(${color}, ${color}, ${color}, ${alpha})`);
     }
 
     getImage(url) {

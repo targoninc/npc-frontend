@@ -35,15 +35,13 @@ export class MapEventHandler {
         const tile = this.mapDrawer.getTileAtMousePosition(e);
         this.mapDrawer.redraw();
         if (tile !== null) {
-            let technicalX = tile.x * this.mapDrawer.getWidthFactor();
-            let technicalY = tile.y * this.mapDrawer.getHeightFactor();
-            let tileSize = tile.size * this.mapDrawer.getWidthFactor();
+            let { x, y, size } = this.mapDrawer.getTileCoordinates(tile);
             let hoverText = `(${tile.x}, ${tile.y}) - ${tile.type}`;
             if (tile.building) {
                 hoverText += ` - ${tile.building.type}`;
             }
-            this.mapDrawer.canvasDrawer.drawRect(technicalX, technicalY, tileSize, tileSize, 'rgba(255, 255, 255, 0.5)');
-            this.mapDrawer.drawTextbox(hoverText, technicalX, technicalY);
+            this.mapDrawer.canvasDrawer.drawRect(x, y, size, size, 'rgba(255, 255, 255, 0.5)');
+            this.mapDrawer.drawTextbox(hoverText, x, y);
         }
     }
 
