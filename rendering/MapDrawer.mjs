@@ -1,4 +1,5 @@
 import {CanvasDrawer} from "./CanvasDrawer.mjs";
+import {MapEventHandler} from "./MapEventHandler.mjs";
 
 export class MapDrawer {
     constructor(canvas, size) {
@@ -24,6 +25,8 @@ export class MapDrawer {
         };
         this.canvasDrawer = new CanvasDrawer(canvas, size, this.textures);
         this.canvas = canvas;
+        this.eventHandler = new MapEventHandler(this, canvas);
+        this.eventHandler.initialize();
     }
 
     getTileAt(x, y) {
@@ -59,52 +62,6 @@ export class MapDrawer {
         return tile;
     }
 
-    initEvents() {
-        let rendering = false;
-        this.canvas.onmousemove = (e) => {
-            if (!rendering) {
-                rendering = true;
-                requestAnimationFrame(() => {
-                    this.handleMouseMove(e);
-                    rendering = false;
-                });
-            }
-        }
-    }
-
-    handleMouseMove(e) {
-        const tile = this.getTileAtMousePosition(e);
-        if (tile !== null) {
-            this.drawMap(this.map, true);
-            let technicalX = tile.x * this.getWidthFactor();
-            let technicalY = tile.y * this.getHeightFactor();
-            let tileSize = tile.size * this.getWidthFactor();
-            let hoverText = `(${tile.x}, ${tile.y}) - ${tile.type}`;
-            if (tile.building) {
-                hoverText += ` - ${tile.building.type}`;
-            }
-            const fontSize = 52;
-            const margin = fontSize * .5;
-            this.canvasDrawer.drawRect(technicalX, technicalY, tileSize, tileSize, 'rgba(255, 255, 255, 0.5)');
-            let textY = technicalY - fontSize;
-            if (textY < .5 * margin) {
-                textY = .5 * margin;
-            }
-            let textX = technicalX;
-            if (textX < margin) {
-                textX = margin;
-            }
-            let textWidth = hoverText.length * (fontSize * .5) + (2 * margin);
-            if (textX + textWidth > this.canvas.width) {
-                textX = this.canvas.width - textWidth - margin;
-            }
-            this.canvasDrawer.drawRect(textX - margin, textY - (.5 * margin), textWidth, fontSize + (2 * margin), 'rgba(0, 0, 0, 0.5)');
-            this.canvasDrawer.drawText(textX, textY + fontSize, hoverText, 'white', fontSize);
-        } else {
-            this.drawMap(this.map, true);
-        }
-    }
-
     /**
      *
      * @param buildings
@@ -125,6 +82,25 @@ export class MapDrawer {
         const inset = ((1 * this.getWidthFactor()) - width) / 2;
         const colorDeviation = (relativeSize * relativeSize) * 60;
         this.canvasDrawer.drawRect(x + inset, y + inset, width, height, `rgba(${90 + colorDeviation},47,${30 + colorDeviation},1)`);
+    }
+
+    drawTextbox(text, x, y) {
+        const fontSize = 52;
+        const margin = fontSize * .5;
+        let textY = y - fontSize;
+        if (textY < .5 * margin) {
+            textY = .5 * margin;
+        }
+        let textX = x;
+        if (textX < margin) {
+            textX = margin;
+        }
+        let textWidth = text.length * (fontSize * .5) + (2 * margin);
+        if (textX + textWidth > this.canvas.width) {
+            textX = this.canvas.width - textWidth - margin;
+        }
+        this.canvasDrawer.drawRect(textX - margin, textY - (.5 * margin), textWidth, fontSize + (2 * margin), 'rgba(0, 0, 0, 0.5)');
+        this.canvasDrawer.drawText(textX, textY + fontSize, text, 'white', fontSize);
     }
 
     getWidthFactor() {

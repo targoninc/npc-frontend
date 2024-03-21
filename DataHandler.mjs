@@ -1,4 +1,4 @@
-import {MapDrawer} from "./MapDrawer.mjs";
+import {MapDrawer} from "./rendering/MapDrawer.mjs";
 
 export class DataHandler {
     static loadWorld(world) {
@@ -6,6 +6,5 @@ export class DataHandler {
         const mapDrawer = new MapDrawer(canvas, 3000);
         console.log("Drawing map...");
         mapDrawer.drawMap(world.map);
-        mapDrawer.initEvents();
     }
 }
