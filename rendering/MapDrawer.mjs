@@ -27,6 +27,9 @@ export class MapDrawer {
         this.canvas = canvas;
         this.eventHandler = new MapEventHandler(this, canvas);
         this.eventHandler.initialize();
+        this.zoom = 1;
+        this.mapCaches = [];
+        this.preloadDone = false;
     }
 
     getTileAt(x, y) {
@@ -113,6 +116,11 @@ export class MapDrawer {
 
     drawTile(tile) {
         const tileTextures = this.textures[tile.type];
+
+        const tileX = tile.x * this.getWidthFactor();
+        const tileY = tile.y * this.getHeightFactor();
+        const tileSize = tile.size * this.getWidthFactor();
+
         if (tileTextures !== undefined) {
             let texture;
             if (tileTextures.constructor === Array) {
@@ -120,9 +128,9 @@ export class MapDrawer {
             } else {
                 texture = this.textures[tile.type];
             }
-            this.canvasDrawer.drawTexturedRect(tile.x * this.getWidthFactor(), tile.y * this.getHeightFactor(), tile.size * this.getWidthFactor(), tile.size * this.getHeightFactor(), texture);
+            this.canvasDrawer.drawTexturedRect(tileX, tileY, tileSize, tileSize, texture);
         } else {
-            this.canvasDrawer.drawRect(tile.x * this.getWidthFactor(), tile.y * this.getHeightFactor(), tile.size * this.getWidthFactor(), tile.size * this.getHeightFactor(), tile.color);
+            this.canvasDrawer.drawRect(tileX, tileY, tileSize, tileSize, tile.color);
         }
     }
 
@@ -141,14 +149,41 @@ export class MapDrawer {
         return image;
     }
 
+    getCache(zoom) {
+        const cacheEntry = this.mapCaches.find(cache => cache.zoom === zoom);
+        if (cacheEntry) {
+            return cacheEntry.image;
+        }
+        return null;
+    }
+
+    setCache(zoom, image) {
+        const existing = this.mapCaches.find(cache => cache.zoom === zoom);
+        if (existing) {
+            existing.image = image;
+            return;
+        }
+        this.mapCaches.push({zoom, image});
+    }
+
+    zoomOut() {
+        this.zoom = Math.max(1, this.zoom * 1.1);
+        this.drawMap(this.map, true);
+    }
+
+    zoomIn() {
+        this.zoom = Math.min(10, this.zoom / 1.1);
+        this.drawMap(this.map, true);
+    }
+
     /**
      *
      * @param map {Array<MapTile>}
      * @param allowCache
      */
     drawMap(map, allowCache = false) {
-        if (allowCache && this.cachedMap) {
-            this.canvasDrawer.redrawWithImage(this.cachedMap);
+        if (allowCache && this.getCache(this.zoom)) {
+            this.canvasDrawer.redrawWithImage(this.getCache(this.zoom));
             return;
         }
         this.map = map;
@@ -156,23 +191,36 @@ export class MapDrawer {
         this.drawTiles();
     }
 
+    redraw() {
+        this.drawMap(this.map, true);
+    }
+
     cacheMap() {
-        this.cachedMap = this.canvasDrawer.getAsImage();
+        this.setCache(this.zoom, this.canvasDrawer.getAsImage());
         console.log("Cached map");
     }
 
     drawTiles() {
-        this.canvasDrawer.preloadTextures(() => {
-            this.map.tiles.forEach(tile => {
-                this.drawTile(tile);
+        if (!this.preloadDone) {
+            this.canvasDrawer.preloadTextures(() => {
+                this.preloadDone = true;
+                this.drawTilesInternal();
             });
-            const minHeight = Math.min(...this.map.tiles.map(tile => tile.height));
-            const maxHeight = Math.max(...this.map.tiles.map(tile => tile.height));
-            this.map.tiles.forEach(tile => {
-                this.drawTileHeight(tile, minHeight, maxHeight);
-            });
-            this.drawBuildings(this.map.buildings);
-            this.cacheMap();
+        } else {
+            this.drawTilesInternal();
+        }
+    }
+
+    drawTilesInternal() {
+        this.map.tiles.forEach(tile => {
+            this.drawTile(tile);
         });
+        const minHeight = Math.min(...this.map.tiles.map(tile => tile.height));
+        const maxHeight = Math.max(...this.map.tiles.map(tile => tile.height));
+        this.map.tiles.forEach(tile => {
+            this.drawTileHeight(tile, minHeight, maxHeight);
+        });
+        this.drawBuildings(this.map.buildings);
+        this.cacheMap();
     }
 }

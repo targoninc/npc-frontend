@@ -20,11 +20,20 @@ export class MapEventHandler {
                 });
             }
         };
+        this.canvas.onwheel = (e) => {
+            if (!rendering) {
+                rendering = true;
+                requestAnimationFrame(() => {
+                    this.handleMouseScroll(e);
+                    rendering = false;
+                });
+            }
+        };
     }
 
     handleMouseMove(e) {
         const tile = this.mapDrawer.getTileAtMousePosition(e);
-        this.mapDrawer.drawMap(this.mapDrawer.map, true);
+        this.mapDrawer.redraw();
         if (tile !== null) {
             let technicalX = tile.x * this.mapDrawer.getWidthFactor();
             let technicalY = tile.y * this.mapDrawer.getHeightFactor();
@@ -36,5 +45,16 @@ export class MapEventHandler {
             this.mapDrawer.canvasDrawer.drawRect(technicalX, technicalY, tileSize, tileSize, 'rgba(255, 255, 255, 0.5)');
             this.mapDrawer.drawTextbox(hoverText, technicalX, technicalY);
         }
+    }
+
+    handleMouseScroll(e) {
+        e.preventDefault();
+        let delta = Math.max(-1, Math.min(1, (e.wheelDelta || -e.detail)));
+        if (delta < 0) {
+            this.mapDrawer.zoomOut();
+        } else {
+            this.mapDrawer.zoomIn();
+        }
+        this.mapDrawer.redraw();
     }
 }
