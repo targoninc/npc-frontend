@@ -35,6 +35,9 @@ export class MapEventHandler {
         this.canvas.onmouseup = (e) => {
             this.handleDragEnd(e);
         };
+        this.canvas.onmouseout = (e) => {
+            this.mapDrawer.redraw(true);
+        }
     }
 
     handleMouseMove(e) {
@@ -48,7 +51,7 @@ export class MapEventHandler {
         } else {
             // only hovering
             const tile = this.mapDrawer.getTileAtMousePosition(e);
-            this.mapDrawer.redraw();
+            this.mapDrawer.redraw(true);
             if (tile !== null) {
                 let { x, y, size } = this.mapDrawer.getTileCoordinates(tile);
                 let hoverText = `(${tile.x}, ${tile.y}) - ${tile.type}`;
