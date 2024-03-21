@@ -47,9 +47,9 @@ export class MapDrawer {
     getTileAtPosition(x, y) {
         let baseTileSize = Math.min(this.canvas.width, this.canvas.height) / this.map.resolution;
         let tileSize = (Math.min(this.canvas.clientWidth, this.canvas.clientHeight) / Math.min(this.canvas.width, this.canvas.height)) * baseTileSize / this.zoom;
-        const tileX = Math.floor(x / tileSize) - Math.floor(this.offset.x / baseTileSize / this.zoom);
-        const tileY = Math.floor(y / tileSize) - Math.floor(this.offset.y / baseTileSize / this.zoom);
-        return this.getTileAt(tileX, tileY);
+        const tileX = Math.round(x / tileSize) - Math.round(this.offset.x / baseTileSize / this.zoom);
+        const tileY = Math.round(y / tileSize) - Math.round(this.offset.y / baseTileSize / this.zoom);
+        return this.getTileAt(Math.round(tileX), Math.round(tileY));
     }
 
     getBuildingOnTile(tile) {
@@ -81,9 +81,9 @@ export class MapDrawer {
     drawBuilding(building, maxSize) {
         const {x, y} = this.getBuildingCoordinates(building);
         const relativeSize = building.size / maxSize;
-        const width = relativeSize * this.getWidthFactor();
-        const height = relativeSize * this.getHeightFactor();
-        const inset = ((1 * this.getWidthFactor()) - width) / 2;
+        const width = relativeSize * this.getWidthFactor() / this.zoom;
+        const height = relativeSize * this.getHeightFactor() / this.zoom;
+        const inset = ((1 * this.getWidthFactor() / this.zoom) - width) / 2;
         const colorDeviation = (relativeSize * relativeSize) * 60;
         this.canvasDrawer.drawRect(x + inset, y + inset, width, height, `rgba(${90 + colorDeviation},47,${30 + colorDeviation},1)`);
     }

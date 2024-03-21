@@ -36,7 +36,7 @@ export class MapEventHandler {
             this.handleDragEnd(e);
         };
         this.canvas.onmouseout = (e) => {
-            this.mapDrawer.redraw(true);
+            this.mapDrawer.redraw();
         }
     }
 
@@ -51,14 +51,15 @@ export class MapEventHandler {
         } else {
             // only hovering
             const tile = this.mapDrawer.getTileAtMousePosition(e);
-            this.mapDrawer.redraw(true);
+            this.mapDrawer.redraw();
             if (tile !== null) {
                 let { x, y, size } = this.mapDrawer.getTileCoordinates(tile);
-                let hoverText = `(${tile.x}, ${tile.y}) - ${tile.type}`;
-                if (tile.building) {
-                    hoverText += ` - ${tile.building.type}`;
-                }
                 this.mapDrawer.canvasDrawer.drawRect(x, y, size, size, 'rgba(255, 255, 255, 0.5)');
+                x += size;
+                let hoverText = `${tile.type}`;
+                if (tile.building) {
+                    hoverText += ` with ${tile.building.type}`;
+                }
                 this.mapDrawer.drawTextbox(hoverText, x, y);
             }
         }
