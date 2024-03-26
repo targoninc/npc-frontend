@@ -24,4 +24,26 @@ export class Models {
             { x: "range:4-5", y: 7, z: "range:0-2", color: "door" },
         ]
     }
+
+    static palm = {
+        name: "palm",
+        colors: {
+            trunk: 0x8B4513,
+            leaves: 0x256111,
+        },
+        voxels: [
+            { x: 4, y: 4, z: "range:0-5", color: "trunk" },
+            { x: 4, y: 4, z: "range:6-7", color: "leaves" },
+            { x: 4, y: 5, z: "range:7-8", color: "leaves" },
+            { x: 4, y: 6, z: 8, color: "leaves" },
+            { x: 4, y: 7, z: 7, color: "leaves" },
+            { x: 4, y: 8, z: 6, color: "leaves" },
+            { x: 5, y: 4, z: "range:7-8", color: "leaves" },
+            { x: 6, y: 4, z: 8, color: "leaves" },
+            { x: 7, y: 4, z: 7, color: "leaves" },
+            { x: 8, y: 4, z: 6, color: "leaves" },
+            { x: 3, y: 3, z: "range:7-8", color: "leaves" },
+            { x: 2, y: 2, z: "range:5-7", color: "leaves" },
+        ]
+    }
 }

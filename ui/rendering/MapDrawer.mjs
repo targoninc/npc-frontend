@@ -14,7 +14,6 @@ export class MapDrawer {
             ],
             desert: [
                 this.getImage("desert_1"),
-                this.getImage("desert_2"),
             ],
             swamp: [
                 this.getImage("swamp_1"),
@@ -26,6 +25,9 @@ export class MapDrawer {
             ],
             building: this.getImage("house"),
             brick: this.getImage("brick"),
+        };
+        this.tileModels = {
+            desert: [Models.palm]
         };
         this.renderer = new ThreeJsDrawer(canvas, this.textures);
         this.renderer.setOnTexturesLoaded(() => {
@@ -39,6 +41,13 @@ export class MapDrawer {
         this.zoom = 1;
         this.zoomChange = 1.1;
         this.offset = {x: this.mapSize / 2, y: this.mapSize / 2};
+        this.cache = localStorage;
+        if (this.cache.getItem('offset')) {
+            this.offset = JSON.parse(this.cache.getItem('offset'));
+        }
+        if (this.cache.getItem('zoom')) {
+            this.zoom = this.cache.getItem('zoom');
+        }
     }
 
     getTileAt(x, y) {
@@ -108,6 +117,18 @@ export class MapDrawer {
         } else {
             this.renderer.drawRect(coords.x, coords.y, coords.size, coords.size, tile.color, Math.max(.01, tile.height * this.heightModifier));
         }
+
+        if (this.tileModels[tile.type]) {
+            const hasModel = NumberGenerator.random(0, 100, tileSeed, true) < 10;
+            if (hasModel && !this.buildingOnTile(tile)) {
+                const model = this.tileModels[tile.type][0];
+                this.renderer.drawModelDefinition(model, coords.x, coords.y, tile.height * this.heightModifier, this.getTileSize() / 10);
+            }
+        }
+    }
+
+    buildingOnTile(tile) {
+        return this.map.buildings.find(building => building.coordinates.x === tile.x && building.coordinates.y === tile.y);
     }
 
     drawTextbox(text, x, y, fontSize = 52, padding = fontSize * .25) {
@@ -161,6 +182,8 @@ export class MapDrawer {
         this.offset.x += x;
         this.offset.y += y;
         this.renderer.updateCameraPosition(this.offset, this.zoom);
+        this.cache.setItem('offset', JSON.stringify(this.offset));
+        this.cache.setItem('zoom', this.zoom);
     }
 
     zoomIn() {
