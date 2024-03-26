@@ -47,6 +47,8 @@ export class ThreeJsDrawer {
             texture.wrapS = THREE.RepeatWrapping;
             texture.wrapT = THREE.RepeatWrapping;
             texture.repeat.set(1, 1);
+            texture.minFilter = THREE.NearestFilter;
+            texture.magFilter = THREE.NearestFilter;
             this.textures[inTexture.src] = new THREE.MeshPhongMaterial({
                 map: texture,
                 transparent: true
@@ -78,7 +80,7 @@ export class ThreeJsDrawer {
             this.camera = new THREE.PerspectiveCamera(90, width / height, 0.1, 10000);
             this.renderer = new THREE.WebGLRenderer({
                 canvas: this.canvas,
-                antialias: false,
+                antialias: true,
             });
             this.renderer.shadowMap.enabled = true;
             this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -143,8 +145,9 @@ export class ThreeJsDrawer {
      * @param texture {CanvasImageSource}
      * @param z {number}
      * @param adjustDepth
+     * @param overwriteDepth
      */
-    drawTexturedRect(x, y, width, height, texture, z = 0, adjustDepth = true) {
+    drawTexturedRect(x, y, width, height, texture, z = 0, adjustDepth = true, overwriteDepth = null) {
         const material = this.textures[texture.src];
         const mesh = new THREE.Mesh(this.geometries.box, material);
         mesh.castShadow = true;
@@ -152,11 +155,11 @@ export class ThreeJsDrawer {
         mesh.position.set(x, -y, z);
         this.anchorMeshTopLeft(mesh, width, height);
         if (adjustDepth) {
-            mesh.scale.set(width, height, z);
-            mesh.position.z -= z / 2;
+            mesh.scale.set(width, height, overwriteDepth ?? z);
         } else {
-            mesh.scale.set(width, height, 1);
+            mesh.scale.set(width, height, overwriteDepth ?? 1);
         }
+        mesh.position.z -= z / 2;
         mesh.rotation.set(0, 0, 0);
         this.scene.add(mesh);
     }

@@ -90,9 +90,10 @@ export class MapDrawer {
         const relativeSize = building.size / maxSize;
         const size = relativeSize * this.getTileSize();
         const inset = ((1 * this.getTileSize()) - size) / 2;
-        let relativeHeight = (building.height - minHeight) / (maxHeight - minHeight);
+        const tileAtPosition = this.getTileAtPosition(building.coordinates.x, building.coordinates.y);
+        let relativeHeight = (tileAtPosition.height - minHeight) / (maxHeight - minHeight);
         relativeHeight *= 100;
-        this.renderer.drawTexturedRect(x + inset, y + inset, size, size, this.textures.building, relativeHeight + 1, false);
+        this.renderer.drawTexturedRect(x + inset, y + inset, size, size, this.textures.building, relativeHeight, false);
     }
 
     drawTextbox(text, x, y, fontSize = 52, padding = fontSize * .25) {
