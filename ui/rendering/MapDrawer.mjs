@@ -25,6 +25,7 @@ export class MapDrawer {
                 this.getImage("valley_2"),
             ],
             building: this.getImage("house"),
+            brick: this.getImage("brick"),
         };
         this.renderer = new ThreeJsDrawer(canvas, this.textures);
         this.renderer.setOnTexturesLoaded(() => {

@@ -15,7 +15,7 @@ export class ThreeJsDrawer {
         this.textures = {};
         this.cameraOffset = {
             x: 0,
-            y: 400,
+            y: 100,
             z: 1000
         };
         this.onTexturesLoaded = () => {};
@@ -100,12 +100,12 @@ export class ThreeJsDrawer {
         const ambientLight = new THREE.AmbientLight(0x777777, 1);
         //this.scene.add(ambientLight);
         const light = new THREE.DirectionalLight(0xffffff, 5);
-        light.position.set(3000, 2000, 1500);
+        light.position.set(-3000, -2000, 1500);
         light.target.position.set(0, 0, 0);
         this.setupLight(light);
         this.scene.add(light);
         const backLight = new THREE.DirectionalLight(0xffffff, .2);
-        backLight.position.set(-3000, -2000, 1500);
+        backLight.position.set(3000, 2000, 1500);
         backLight.target.position.set(0, 0, 0);
         this.setupLight(backLight);
         this.scene.add(backLight);
@@ -136,22 +136,36 @@ export class ThreeJsDrawer {
         mesh.position.y -= height / 2;
     }
 
+    findTexture(name) {
+        for (const textureKey in this.textures) {
+            if (textureKey.includes(name)) {
+                return this.textures[textureKey];
+            }
+        }
+    }
+
     /**
      * Draws a rectangle with a texture
      * @param x {number}
      * @param y {number}
      * @param width {number}
      * @param height {number}
-     * @param texture {CanvasImageSource}
+     * @param texture {CanvasImageSource|string}
      * @param z {number}
      * @param adjustDepth
      * @param overwriteDepth
      */
     drawTexturedRect(x, y, width, height, texture, z = 0, adjustDepth = true, overwriteDepth = null) {
-        const material = this.textures[texture.src];
+        let material;
+        if (texture.constructor === String) {
+            material = this.findTexture(texture);
+        } else {
+            material = this.textures[texture.src];
+        }
         const mesh = new THREE.Mesh(this.geometries.box, material);
         mesh.castShadow = true;
         mesh.receiveShadow = true;
+        mesh.frustumCulled = true;
         mesh.position.set(x, -y, z);
         this.anchorMeshTopLeft(mesh, width, height);
         if (adjustDepth) {
@@ -185,6 +199,7 @@ export class ThreeJsDrawer {
         if (!disableShadows) {
             mesh.castShadow = true;
             mesh.receiveShadow = true;
+            mesh.frustumCulled = true;
         }
         mesh.position.set(x, -y, z);
         this.anchorMeshTopLeft(mesh, width, height);
@@ -237,29 +252,33 @@ export class ThreeJsDrawer {
 
     drawModelDefinition(modelDefinition, x, y, z, voxelSize) {
         for (const voxel of modelDefinition.voxels) {
-            this.drawVoxel(voxel, modelDefinition.colors[voxel.color], x, y, z, voxelSize);
+            if (voxel.color) {
+                this.drawColoredVoxel(voxel, modelDefinition.colors[voxel.color], x, y, z, voxelSize);
+            } else if (voxel.texture) {
+                this.drawTexturedVoxel(voxel, voxel.texture, x, y, z, voxelSize);
+            }
         }
     }
 
-    drawVoxel(voxel, color, bx, by, bz, voxelSize) {
+    drawColoredVoxel(voxel, color, bx, by, bz, voxelSize) {
         if (voxel.x.constructor === String && voxel.x.startsWith("range:")) {
             const rangeParts = this.parseRange(voxel.x);
             for (let x = rangeParts[0]; x <= rangeParts[1]; x++) {
-                this.drawVoxel({...voxel, x}, color, bx, by, bz, voxelSize);
+                this.drawColoredVoxel({...voxel, x}, color, bx, by, bz, voxelSize);
             }
             return;
         }
         if (voxel.y.constructor === String && voxel.y.startsWith("range:")) {
             const rangeParts = this.parseRange(voxel.y);
             for (let y = rangeParts[0]; y <= rangeParts[1]; y++) {
-                this.drawVoxel({...voxel, y}, color, bx, by, bz, voxelSize);
+                this.drawColoredVoxel({...voxel, y}, color, bx, by, bz, voxelSize);
             }
             return;
         }
         if (voxel.z.constructor === String && voxel.z.startsWith("range:")) {
             const rangeParts = this.parseRange(voxel.z);
             for (let z = rangeParts[0]; z <= rangeParts[1]; z++) {
-                this.drawVoxel({...voxel, z}, color, bx, by, bz, voxelSize);
+                this.drawColoredVoxel({...voxel, z}, color, bx, by, bz, voxelSize);
             }
             return;
         }
@@ -267,6 +286,34 @@ export class ThreeJsDrawer {
         const fy = by + voxel.y * voxelSize;
         const fz = bz + voxel.z * voxelSize;
         this.drawRect(fx, fy, voxelSize, voxelSize, color, fz, false, voxelSize, false);
+    }
+
+    drawTexturedVoxel(voxel, texture, bx, by, bz, voxelSize) {
+        if (voxel.x.constructor === String && voxel.x.startsWith("range:")) {
+            const rangeParts = this.parseRange(voxel.x);
+            for (let x = rangeParts[0]; x <= rangeParts[1]; x++) {
+                this.drawTexturedVoxel({...voxel, x}, texture, bx, by, bz, voxelSize);
+            }
+            return;
+        }
+        if (voxel.y.constructor === String && voxel.y.startsWith("range:")) {
+            const rangeParts = this.parseRange(voxel.y);
+            for (let y = rangeParts[0]; y <= rangeParts[1]; y++) {
+                this.drawTexturedVoxel({...voxel, y}, texture, bx, by, bz, voxelSize);
+            }
+            return;
+        }
+        if (voxel.z.constructor === String && voxel.z.startsWith("range:")) {
+            const rangeParts = this.parseRange(voxel.z);
+            for (let z = rangeParts[0]; z <= rangeParts[1]; z++) {
+                this.drawTexturedVoxel({...voxel, z}, texture, bx, by, bz, voxelSize);
+            }
+            return;
+        }
+        const fx = bx + voxel.x * voxelSize;
+        const fy = by + voxel.y * voxelSize;
+        const fz = bz + voxel.z * voxelSize;
+        this.drawTexturedRect(fx, fy, voxelSize, voxelSize, texture, fz, false, voxelSize);
     }
 
     parseRange(range) {
