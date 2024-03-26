@@ -15,8 +15,29 @@ export class GenericTemplates {
             .id("progressText")
             .children(
                 GenericTemplates.list(done, GenericTemplates.progressDone),
-                create("span")
-                    .text(merged)
+                create("div")
+                    .classes("flex-v")
+                    .children(
+                        create("span")
+                            .text(merged)
+                            .build(),
+                        GenericTemplates.progressBar(progress),
+                    ).build(),
+            ).build();
+    }
+
+    static progressBar(progress) {
+        const percent = signal(progress.value + "%");
+        progress.subscribe((newProgress) => {
+            percent.value = newProgress + "%";
+        });
+
+        return create("div")
+            .classes("progress")
+            .children(
+                create("div")
+                    .classes("progress-bar")
+                    .styles("width", percent)
                     .build()
             ).build();
     }
