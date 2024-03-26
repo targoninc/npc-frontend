@@ -1,6 +1,7 @@
 import {MapEventHandler} from "./MapEventHandler.mjs";
 import {NumberGenerator} from "../NumberGenerator.mjs";
 import {ThreeJsDrawer} from "./ThreeJsDrawer.mjs";
+import {Models} from "../models/Models.mjs";
 
 export class MapDrawer {
     constructor(canvas) {
@@ -33,6 +34,7 @@ export class MapDrawer {
         this.eventHandler = new MapEventHandler(this, canvas);
         this.eventHandler.initialize();
         this.mapSize = 3000;
+        this.heightModifier = 10;
         this.zoom = 1;
         this.zoomChange = 1.1;
         this.offset = {x: this.mapSize / 2, y: this.mapSize / 2};
@@ -75,25 +77,36 @@ export class MapDrawer {
     /**
      *
      * @param buildings
-     * @param minHeight
-     * @param maxHeight
      */
-    drawBuildings(buildings, minHeight, maxHeight) {
-        const maxSize = Math.max(...buildings.map(b => b.size));
+    drawBuildings(buildings) {
         buildings.forEach(building => {
-            this.drawBuilding(building, maxSize, minHeight, maxHeight);
+            this.drawBuilding(building);
         });
     }
 
-    drawBuilding(building, maxSize, minHeight, maxHeight) {
+    drawBuilding(building) {
         const {x, y} = this.getBuildingCoordinates(building);
-        const relativeSize = building.size / maxSize;
-        const size = relativeSize * this.getTileSize();
-        const inset = ((1 * this.getTileSize()) - size) / 2;
-        const tileAtPosition = this.getTileAtPosition(building.coordinates.x, building.coordinates.y);
-        let relativeHeight = (tileAtPosition.height - minHeight) / (maxHeight - minHeight);
-        relativeHeight *= 100;
-        this.renderer.drawTexturedRect(x + inset, y + inset, size, size, this.textures.building, relativeHeight, false);
+        const tileAtPosition = this.getTileAt(building.coordinates.x, building.coordinates.y);
+        this.renderer.drawModelDefinition(Models.house, x, y, tileAtPosition.height * this.heightModifier, this.getTileSize() / 10);
+    }
+
+    drawTile(tile) {
+        const tileTextures = this.textures[tile.type];
+        const coords = this.getTileCoordinates(tile);
+        const tileSeed = tile.x * 1000 + tile.y;
+
+        if (tileTextures !== undefined) {
+            let texture;
+            if (tileTextures.constructor === Array) {
+                const textureIndex = NumberGenerator.random(0, tileTextures.length, tileSeed, true);
+                texture = tileTextures[textureIndex];
+            } else {
+                texture = this.textures[tile.type];
+            }
+            this.renderer.drawTexturedRect(coords.x, coords.y, coords.size, coords.size, texture, Math.max(.01, tile.height * this.heightModifier));
+        } else {
+            this.renderer.drawRect(coords.x, coords.y, coords.size, coords.size, tile.color, Math.max(.01, tile.height * this.heightModifier));
+        }
     }
 
     drawTextbox(text, x, y, fontSize = 52, padding = fontSize * .25) {
@@ -132,27 +145,6 @@ export class MapDrawer {
             y: building.coordinates.y * this.getTileSize(),
             size: building.size * this.getTileSize()
         };
-    }
-
-    drawTile(tile, minHeight, maxHeight) {
-        const tileTextures = this.textures[tile.type];
-        const coords = this.getTileCoordinates(tile);
-        const tileSeed = tile.x * 1000 + tile.y;
-        let relativeHeight = (tile.height - minHeight) / (maxHeight - minHeight);
-        relativeHeight *= 100;
-
-        if (tileTextures !== undefined) {
-            let texture;
-            if (tileTextures.constructor === Array) {
-                const textureIndex = NumberGenerator.random(0, tileTextures.length, tileSeed, true);
-                texture = tileTextures[textureIndex];
-            } else {
-                texture = this.textures[tile.type];
-            }
-            this.renderer.drawTexturedRect(coords.x, coords.y, coords.size, coords.size, texture, relativeHeight);
-        } else {
-            this.renderer.drawRect(coords.x, coords.y, coords.size, coords.size, tile.color, relativeHeight);
-        }
     }
 
     getImage(url) {
@@ -201,12 +193,10 @@ export class MapDrawer {
     drawTiles() {
         this.renderer.cleanScene();
         //this.drawBackground();
-        const minHeight = Math.min(...this.map.tiles.map(tile => tile.height));
-        const maxHeight = Math.max(...this.map.tiles.map(tile => tile.height));
         this.map.tiles.forEach(tile => {
-            this.drawTile(tile, minHeight, maxHeight);
+            this.drawTile(tile);
         });
-        this.drawBuildings(this.map.buildings, minHeight, maxHeight);
+        this.drawBuildings(this.map.buildings);
         this.renderer.softDisplay();
     }
 }

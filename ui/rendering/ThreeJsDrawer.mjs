@@ -156,10 +156,10 @@ export class ThreeJsDrawer {
         this.anchorMeshTopLeft(mesh, width, height);
         if (adjustDepth) {
             mesh.scale.set(width, height, overwriteDepth ?? z);
+            mesh.position.z -= z / 2;
         } else {
             mesh.scale.set(width, height, overwriteDepth ?? 1);
         }
-        mesh.position.z -= z / 2;
         mesh.rotation.set(0, 0, 0);
         this.scene.add(mesh);
     }
@@ -171,24 +171,28 @@ export class ThreeJsDrawer {
      * @param width
      * @param height
      * @param color
-     * @param depth
+     * @param z
      * @param adjustDepth
+     * @param overwriteDepth
+     * @param disableShadows
      */
-    drawRect(x, y, width, height, color, depth = 0, adjustDepth = true) {
+    drawRect(x, y, width, height, color, z = 0, adjustDepth = true, overwriteDepth = null, disableShadows = false) {
         if (!this.materials[color]) {
             this.materials[color] = new THREE.MeshPhongMaterial({color});
         }
         const material = this.materials[color];
         const mesh = new THREE.Mesh(this.geometries.box, material);
-        mesh.castShadow = true;
-        mesh.receiveShadow = true;
-        mesh.position.set(x, -y, depth);
+        if (!disableShadows) {
+            mesh.castShadow = true;
+            mesh.receiveShadow = true;
+        }
+        mesh.position.set(x, -y, z);
         this.anchorMeshTopLeft(mesh, width, height);
         if (adjustDepth) {
-            mesh.scale.set(width, height, depth);
-            mesh.position.z -= depth / 2;
+            mesh.scale.set(width, height, z);
+            mesh.position.z -= z / 2;
         } else {
-            mesh.scale.set(width, height, 1);
+            mesh.scale.set(width, height, overwriteDepth ?? 1);
         }
         mesh.rotation.set(0, 0, 0);
         this.scene.add(mesh);
@@ -229,5 +233,43 @@ export class ThreeJsDrawer {
             return;
         }
         this.renderer.render(this.scene, this.camera);
+    }
+
+    drawModelDefinition(modelDefinition, x, y, z, voxelSize) {
+        for (const voxel of modelDefinition.voxels) {
+            this.drawVoxel(voxel, modelDefinition.colors[voxel.color], x, y, z, voxelSize);
+        }
+    }
+
+    drawVoxel(voxel, color, bx, by, bz, voxelSize) {
+        if (voxel.x.constructor === String && voxel.x.startsWith("range:")) {
+            const rangeParts = this.parseRange(voxel.x);
+            for (let x = rangeParts[0]; x <= rangeParts[1]; x++) {
+                this.drawVoxel({...voxel, x}, color, bx, by, bz, voxelSize);
+            }
+            return;
+        }
+        if (voxel.y.constructor === String && voxel.y.startsWith("range:")) {
+            const rangeParts = this.parseRange(voxel.y);
+            for (let y = rangeParts[0]; y <= rangeParts[1]; y++) {
+                this.drawVoxel({...voxel, y}, color, bx, by, bz, voxelSize);
+            }
+            return;
+        }
+        if (voxel.z.constructor === String && voxel.z.startsWith("range:")) {
+            const rangeParts = this.parseRange(voxel.z);
+            for (let z = rangeParts[0]; z <= rangeParts[1]; z++) {
+                this.drawVoxel({...voxel, z}, color, bx, by, bz, voxelSize);
+            }
+            return;
+        }
+        const fx = bx + voxel.x * voxelSize;
+        const fy = by + voxel.y * voxelSize;
+        const fz = bz + voxel.z * voxelSize;
+        this.drawRect(fx, fy, voxelSize, voxelSize, color, fz, false, voxelSize, false);
+    }
+
+    parseRange(range) {
+        return range.split(":")[1].split("-").map((n) => parseInt(n));
     }
 }
