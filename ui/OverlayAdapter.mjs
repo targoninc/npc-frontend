@@ -1,4 +1,4 @@
-import {signal} from "https://fjs.targoninc.com/f.js";
+import {signal} from "@targoninc/fjs";
 import {GenericTemplates} from "./templates/GenericTemplates.mjs";
 
 export class OverlayAdapter {

@@ -20,15 +20,6 @@ export class MapEventHandler {
                 });
             }
         };
-        this.canvas.onwheel = (e) => {
-            if (!rendering) {
-                rendering = true;
-                requestAnimationFrame(() => {
-                    this.handleMouseScroll(e);
-                    rendering = false;
-                });
-            }
-        };
         this.canvas.onmousedown = (e) => {
             this.handleDragStart(e);
         };
@@ -37,7 +28,15 @@ export class MapEventHandler {
         };
         this.canvas.onmouseout = (e) => {
             this.mapDrawer.redraw();
-        }
+        };
+        this.canvas.onwheel = (e) => {
+            e.preventDefault();
+            if (e.deltaY > 0) {
+                this.mapDrawer.zoomIn();
+            } else {
+                this.mapDrawer.zoomOut();
+            }
+        };
     }
 
     handleMouseMove(e) {
@@ -45,16 +44,16 @@ export class MapEventHandler {
             let { x, y } = this.getMousePos(e);
             let offsetX = x - this.dragStart.x;
             let offsetY = y - this.dragStart.y;
-            this.mapDrawer.move(offsetX, offsetY);
+            this.mapDrawer.move(-offsetX, -offsetY);
             this.dragStart = { x, y };
-            this.mapDrawer.redraw();
         } else {
+            return;
             // only hovering
             const tile = this.mapDrawer.getTileAtMousePosition(e);
             this.mapDrawer.redraw();
             if (tile !== null) {
                 let { x, y, size } = this.mapDrawer.getTileCoordinates(tile);
-                this.mapDrawer.canvasDrawer.drawRect(x, y, size, size, 'rgba(255, 255, 255, 0.25)');
+                this.mapDrawer.renderer.drawRect(x, y, size, size, 'rgba(255, 255, 255, 0.25)');
                 x += size;
                 let hoverText = `${tile.type}`;
                 let tileTextCoords = this.mapDrawer.drawTextbox(hoverText, x, y);
@@ -68,18 +67,6 @@ export class MapEventHandler {
                 }
             }
         }
-    }
-
-    handleMouseScroll(e) {
-        e.preventDefault();
-        let delta = Math.max(-1, Math.min(1, (e.wheelDelta || -e.detail)));
-        let { x: mouseX, y: mouseY } = this.getMousePos(e);
-        if (delta < 0) {
-            this.mapDrawer.zoomOut(mouseX, mouseY);
-        } else {
-            this.mapDrawer.zoomIn(mouseX, mouseY);
-        }
-        this.mapDrawer.redraw();
     }
 
     handleDragStart(e) {

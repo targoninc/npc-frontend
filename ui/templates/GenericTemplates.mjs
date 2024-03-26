@@ -1,4 +1,4 @@
-import {create, signal} from "https://fjs.targoninc.com/f.js"
+import {create, signal} from "@targoninc/fjs"
 
 export class GenericTemplates {
     static progressText(type, progress, done) {
