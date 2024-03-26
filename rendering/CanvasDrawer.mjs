@@ -45,6 +45,7 @@ export class CanvasDrawer {
 
     redrawWithImage(image, offset) {
         this.clear();
+        this.ctx.imageSmoothingEnabled = false;
         this.ctx.putImageData(image, offset.x, offset.y);
     }
 
@@ -61,6 +62,7 @@ export class CanvasDrawer {
      * @param texture {CanvasImageSource}
      */
     drawTexturedRect(x, y, width, height, texture) {
+        this.ctx.imageSmoothingEnabled = false;
         this.ctx.drawImage(texture, x, y, width, height);
     }
 

@@ -22,14 +22,16 @@ export class MapDrawer {
             valley: [
                 this.getImage("valley_1"),
                 this.getImage("valley_2"),
-            ]
+            ],
+            building: this.getImage("house"),
         };
         this.canvasDrawer = new CanvasDrawer(canvas, size, this.textures);
         this.canvas = canvas;
         this.eventHandler = new MapEventHandler(this, canvas);
         this.eventHandler.initialize();
-        this.zoom = 1;
-        this.offset = {x: 0, y: 0};
+        this.zoom = 1.2;
+        this.zoomChange = 1.1;
+        this.offset = {x: this.canvas.width * 0.1, y: this.canvas.height * 0.1};
         this.mapCaches = [];
         this.preloadDone = false;
     }
@@ -45,11 +47,9 @@ export class MapDrawer {
     }
 
     getTileAtPosition(x, y) {
-        let baseTileSize = Math.min(this.canvas.width, this.canvas.height) / this.map.resolution;
-        let tileSize = (Math.min(this.canvas.clientWidth, this.canvas.clientHeight) / Math.min(this.canvas.width, this.canvas.height)) * baseTileSize / this.zoom;
-        const tileX = Math.round(x / tileSize) - Math.round(this.offset.x / baseTileSize / this.zoom);
-        const tileY = Math.round(y / tileSize) - Math.round(this.offset.y / baseTileSize / this.zoom);
-        return this.getTileAt(Math.round(tileX), Math.round(tileY));
+        const tileX = x / this.getWidthFactor();
+        const tileY = y / this.getHeightFactor();
+        return this.getTileAt(Math.floor(tileX), Math.floor(tileY));
     }
 
     getBuildingOnTile(tile) {
@@ -58,8 +58,11 @@ export class MapDrawer {
 
     getTileAtMousePosition(e) {
         const rect = this.canvas.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
+        let x = e.clientX - rect.left;
+        let y = e.clientY - rect.top;
+        const canvasFactor = this.canvas.clientWidth / this.canvas.width;
+        x = (x / canvasFactor - (this.offset.x)) * this.zoom;
+        y = (y / canvasFactor - (this.offset.y)) * this.zoom;
         const tile = this.getTileAtPosition(x, y);
         if (tile) {
             tile.building = this.getBuildingOnTile(tile);
@@ -84,27 +87,25 @@ export class MapDrawer {
         const width = relativeSize * this.getWidthFactor() / this.zoom;
         const height = relativeSize * this.getHeightFactor() / this.zoom;
         const inset = ((1 * this.getWidthFactor() / this.zoom) - width) / 2;
-        const colorDeviation = (relativeSize * relativeSize) * 60;
-        this.canvasDrawer.drawRect(x + inset, y + inset, width, height, `rgba(${90 + colorDeviation},47,${30 + colorDeviation},1)`);
+        this.canvasDrawer.drawTexturedRect(x + inset, y + inset, width, height, this.textures.building);
     }
 
-    drawTextbox(text, x, y) {
-        const fontSize = 52;
-        const margin = fontSize * .5;
-        let textY = y - fontSize;
-        if (textY < .5 * margin) {
-            textY = .5 * margin;
+    drawTextbox(text, x, y, fontSize = 52, padding = fontSize * .25) {
+        let textY = y + .5 * padding;
+        if (textY < .5 * padding) {
+            textY = .5 * padding;
         }
-        let textX = x;
-        if (textX < margin) {
-            textX = margin;
+        let textX = x + padding;
+        if (textX < padding) {
+            textX = padding;
         }
-        let textWidth = text.length * (fontSize * .5) + (2 * margin);
+        let textWidth = text.length * (fontSize * .5) + (2 * padding);
         if (textX + textWidth > this.canvas.width) {
-            textX = this.canvas.width - textWidth - margin;
+            textX = this.canvas.width - textWidth - padding;
         }
-        this.canvasDrawer.drawRect(textX - margin, textY - (.5 * margin), textWidth, fontSize + (2 * margin), 'rgba(0, 0, 0, 0.5)');
+        this.canvasDrawer.drawRect(textX - padding, textY - (.5 * padding), textWidth, fontSize + (2 * padding), 'rgba(0, 0, 0, 0.5)');
         this.canvasDrawer.drawText(textX, textY + fontSize, text, 'white', fontSize);
+        return {x, y, width: textWidth, height: fontSize + (2 * padding)};
     }
 
     getWidthFactor() {
@@ -117,16 +118,16 @@ export class MapDrawer {
 
     getTileCoordinates(tile) {
         return {
-            x: (tile.x * this.getWidthFactor() + (this.offset.x / this.zoom)) / this.zoom,
-            y: (tile.y * this.getHeightFactor() + (this.offset.y / this.zoom)) / this.zoom,
+            x: (tile.x * this.getWidthFactor() + (this.offset.x * this.zoom)) / this.zoom,
+            y: (tile.y * this.getHeightFactor() + (this.offset.y * this.zoom)) / this.zoom,
             size: tile.size * this.getWidthFactor() / this.zoom
         };
     }
 
     getBuildingCoordinates(building) {
         return {
-            x: (building.coordinates.x * this.getWidthFactor() + (this.offset.x / this.zoom)) / this.zoom,
-            y: (building.coordinates.y * this.getHeightFactor() + (this.offset.y / this.zoom)) / this.zoom,
+            x: (building.coordinates.x * this.getWidthFactor() + (this.offset.x * this.zoom)) / this.zoom,
+            y: (building.coordinates.y * this.getHeightFactor() + (this.offset.y * this.zoom)) / this.zoom,
             size: building.size * this.getWidthFactor() / this.zoom
         };
     }
@@ -184,20 +185,24 @@ export class MapDrawer {
     }
 
     move(x, y) {
+        const canvasFactor = this.canvas.clientWidth / this.canvas.width;
+        x = (x / canvasFactor);
+        y = (y / canvasFactor);
         this.offset.x += x;
         this.offset.y += y;
     }
 
-    zoomOut() {
-        this.zoom = Math.min(1, this.zoom * 1.1);
-        if (this.zoom === 1) {
-            this.offset = {x: 0, y: 0};
-        }
+    zoomIn() {
+        this.zoom = Math.max(.1, this.zoom / 1.1);
+        this.offset.x -= this.canvas.width * 0.05 / this.zoom;
+        this.offset.y -= this.canvas.height * 0.05 / this.zoom;
         this.drawMap(this.map, false);
     }
 
-    zoomIn() {
-        this.zoom = Math.max(.1, this.zoom / 1.1);
+    zoomOut() {
+        this.zoom = Math.min(10, this.zoom * this.zoomChange);
+        this.offset.x += this.canvas.width * 0.05 / this.zoom;
+        this.offset.y += this.canvas.height * 0.05 / this.zoom;
         this.drawMap(this.map, false);
     }
 
@@ -222,7 +227,6 @@ export class MapDrawer {
 
     cacheMap() {
         this.setCache(this.zoom, this.canvasDrawer.getAsImage());
-        console.log("Cached map");
     }
 
     drawTiles() {
@@ -236,7 +240,14 @@ export class MapDrawer {
         }
     }
 
+    drawBackground() {
+        const w = this.canvas.width / this.zoom;
+        const h = this.canvas.height / this.zoom;
+        this.canvasDrawer.drawRect(this.offset.x, this.offset.y, w, h, "red");
+    }
+
     drawTilesInternal() {
+        this.drawBackground();
         this.map.tiles.forEach(tile => {
             this.drawTile(tile);
         });

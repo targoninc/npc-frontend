@@ -54,13 +54,18 @@ export class MapEventHandler {
             this.mapDrawer.redraw();
             if (tile !== null) {
                 let { x, y, size } = this.mapDrawer.getTileCoordinates(tile);
-                this.mapDrawer.canvasDrawer.drawRect(x, y, size, size, 'rgba(255, 255, 255, 0.5)');
+                this.mapDrawer.canvasDrawer.drawRect(x, y, size, size, 'rgba(255, 255, 255, 0.25)');
                 x += size;
                 let hoverText = `${tile.type}`;
+                let tileTextCoords = this.mapDrawer.drawTextbox(hoverText, x, y);
+                hoverText = `Height: ${tile.height}`;
+                tileTextCoords = this.mapDrawer.drawTextbox(hoverText, tileTextCoords.x, tileTextCoords.y + tileTextCoords.height, 26, 13);
+                hoverText = `Coordinates: ${tile.x}, ${tile.y}`;
+                tileTextCoords = this.mapDrawer.drawTextbox(hoverText, tileTextCoords.x, tileTextCoords.y + tileTextCoords.height, 26, 13);
                 if (tile.building) {
-                    hoverText += ` with ${tile.building.type}`;
+                    hoverText = `Building: ${tile.building.type}`;
+                    this.mapDrawer.drawTextbox(hoverText, tileTextCoords.x, tileTextCoords.y + tileTextCoords.height, 26, 13);
                 }
-                this.mapDrawer.drawTextbox(hoverText, x, y);
             }
         }
     }
