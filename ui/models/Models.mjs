@@ -93,7 +93,25 @@ export class Models {
             grass: 0x00A000,
         },
         voxels: [
-            { x: "range:0-9", y: "range:0-9", z: 0, color: "grass" },
+            { x: 0, y: 0, z: "range:0-1", color: "grass" },
+            { x: 1, y: 3, z: "range:0-1", color: "grass" },
+            { x: 1, y: 8, z: "range:0-1", color: "grass" },
+            { x: 2, y: 4, z: "range:0-1", color: "grass" },
+            { x: 2, y: 7, z: "range:0-1", color: "grass" },
+            { x: 3, y: 1, z: "range:0-1", color: "grass" },
+            { x: 4, y: 3, z: "range:0-1", color: "grass" },
+            { x: 4, y: 6, z: "range:0-1", color: "grass" },
+            { x: 5, y: 1, z: "range:0-1", color: "grass" },
+            { x: 5, y: 4, z: "range:0-1", color: "grass" },
+            { x: 5, y: 9, z: "range:0-1", color: "grass" },
+            { x: 6, y: 5, z: "range:0-1", color: "grass" },
+            { x: 6, y: 7, z: "range:0-1", color: "grass" },
+            { x: 7, y: 2, z: "range:0-1", color: "grass" },
+            { x: 8, y: 0, z: "range:0-1", color: "grass" },
+            { x: 8, y: 4, z: "range:0-1", color: "grass" },
+            { x: 8, y: 8, z: "range:0-1", color: "grass" },
+            { x: 9, y: 3, z: "range:0-1", color: "grass" },
+            { x: 9, y: 6, z: "range:0-1", color: "grass" },
         ]
     }
 }

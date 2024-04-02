@@ -41,7 +41,7 @@ export class MapDrawer {
         this.tileChances = {
             desert: 0.1,
             volcano: 0.2,
-            valley: 0.3,
+            valley: 0.8,
             forest: 0.3,
         }
         this.renderer = new ThreeJsDrawer(canvas, this.textures);

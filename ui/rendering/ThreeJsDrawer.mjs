@@ -19,6 +19,7 @@ export class ThreeJsDrawer {
             y: 100,
             z: 1000
         };
+        this.modelDistanceThreshold = 512;
         this.onTexturesLoaded = () => {};
         this.loadTextures(textures);
         this.loadFonts();
@@ -279,7 +280,7 @@ export class ThreeJsDrawer {
         for (const model of this.models) {
             const distanceToCamera = Math.sqrt(Math.pow(camPos.x - model.x, 2) + Math.pow(camPos.y - model.y, 2) + Math.pow(camPos.z - model.z, 2));
             const meshes = this.renderedModelVoxels[model.modelId];
-            if (distanceToCamera > 512) {
+            if (distanceToCamera > this.modelDistanceThreshold) {
                 if (meshes && meshes.length > 0) {
                     for (const mesh of meshes) {
                         this.scene.remove(mesh);
@@ -300,7 +301,7 @@ export class ThreeJsDrawer {
         if (modelId && this.models.find((model) => model.modelId === modelId) === undefined) {
             this.models.push({modelId, modelDefinition, x, y, z, voxelSize});
         }
-        if (distanceToCamera > 512) {
+        if (distanceToCamera > this.modelDistanceThreshold) {
             return;
         }
         z += voxelSize / 2;
