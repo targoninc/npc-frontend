@@ -13,6 +13,7 @@ export class ThreeJsDrawer {
         this.font = null;
         this.textureLoader = new THREE.TextureLoader();
         this.textures = {};
+        this.models = [];
         this.cameraOffset = {
             x: 0,
             y: 100,
@@ -25,6 +26,7 @@ export class ThreeJsDrawer {
 
     loadTextures(textures) {
         this.loadingTextures = 0;
+        console.log("Loading textures...");
         for (const textureKey in textures) {
             const texture = textures[textureKey];
             if (texture.constructor === Array) {
@@ -55,6 +57,7 @@ export class ThreeJsDrawer {
             });
             this.loadingTextures--;
             if (this.loadingTextures === 0) {
+                console.log("All textures loaded");
                 this.onTexturesLoaded();
             }
         });
@@ -94,29 +97,30 @@ export class ThreeJsDrawer {
         this.camera.position.z = this.cameraOffset.z * zoom;
         this.camera.lookAt(offset.x + this.cameraOffset.x, -offset.y + this.cameraOffset.y, 0);
         this.addLight();
+        console.log("Initialized 3D frame");
     }
 
     addLight() {
         const ambientLight = new THREE.AmbientLight(0x777777, 1);
-        //this.scene.add(ambientLight);
+        this.scene.add(ambientLight);
         const light = new THREE.DirectionalLight(0xffffff, 5);
-        light.position.set(-3000, -2000, 1500);
-        light.target.position.set(0, 0, 0);
+        light.position.set(0, -3000, 1000);
+        light.target.position.set(1500, -1500, 0);
         this.setupLight(light);
         this.scene.add(light);
-        const backLight = new THREE.DirectionalLight(0xffffff, .2);
-        backLight.position.set(3000, 2000, 1500);
-        backLight.target.position.set(0, 0, 0);
-        this.setupLight(backLight);
-        this.scene.add(backLight);
+        const helper = new THREE.DirectionalLightHelper(light, 0);
     }
 
     setupLight(light) {
-        light.castShadow = true;
-        light.shadow.mapSize.width = 2048;
-        light.shadow.mapSize.height = 2048;
+        light.shadow.mapSize.width = 4096;
+        light.shadow.mapSize.height = 4096;
         light.shadow.camera.near = 0.5;
-        light.shadow.camera.far = 5000;
+        light.shadow.camera.far = 10000;
+        light.shadow.camera.left = -2000;
+        light.shadow.camera.right = 2000;
+        light.shadow.camera.top = 2000;
+        light.shadow.camera.bottom = -2000;
+        light.castShadow = true;
     }
 
     updateCameraPosition(offset, zoom) {
@@ -154,8 +158,9 @@ export class ThreeJsDrawer {
      * @param z {number}
      * @param adjustDepth
      * @param overwriteDepth
+     * @param userData
      */
-    drawTexturedRect(x, y, width, height, texture, z = 0, adjustDepth = true, overwriteDepth = null) {
+    drawTexturedRect(x, y, width, height, texture, z = 0, adjustDepth = true, overwriteDepth = null, userData = null) {
         let material;
         if (texture.constructor === String) {
             material = this.findTexture(texture);
@@ -165,7 +170,6 @@ export class ThreeJsDrawer {
         const mesh = new THREE.Mesh(this.geometries.box, material);
         mesh.castShadow = true;
         mesh.receiveShadow = true;
-        mesh.frustumCulled = true;
         mesh.position.set(x, -y, z);
         this.anchorMeshTopLeft(mesh, width, height);
         if (adjustDepth) {
@@ -175,7 +179,11 @@ export class ThreeJsDrawer {
             mesh.scale.set(width, height, overwriteDepth ?? 1);
         }
         mesh.rotation.set(0, 0, 0);
+        if (userData) {
+            mesh.userData = userData;
+        }
         this.scene.add(mesh);
+        return mesh;
     }
 
     /**
@@ -189,8 +197,9 @@ export class ThreeJsDrawer {
      * @param adjustDepth
      * @param overwriteDepth
      * @param disableShadows
+     * @param userData
      */
-    drawRect(x, y, width, height, color, z = 0, adjustDepth = true, overwriteDepth = null, disableShadows = false) {
+    drawRect(x, y, width, height, color, z = 0, adjustDepth = true, overwriteDepth = null, disableShadows = false, userData = null) {
         if (!this.materials[color]) {
             this.materials[color] = new THREE.MeshPhongMaterial({color});
         }
@@ -199,7 +208,6 @@ export class ThreeJsDrawer {
         if (!disableShadows) {
             mesh.castShadow = true;
             mesh.receiveShadow = true;
-            mesh.frustumCulled = true;
         }
         mesh.position.set(x, -y, z);
         this.anchorMeshTopLeft(mesh, width, height);
@@ -210,7 +218,11 @@ export class ThreeJsDrawer {
             mesh.scale.set(width, height, overwriteDepth ?? 1);
         }
         mesh.rotation.set(0, 0, 0);
+        if (userData) {
+            mesh.userData = userData;
+        }
         this.scene.add(mesh);
+        return mesh;
     }
 
     drawText(x, y, text, color, fontSize = 52) {
@@ -239,81 +251,130 @@ export class ThreeJsDrawer {
             this.materials[materialKey].dispose();
         }
         this.materials = {};
-        this.scene.children = [];
-        this.addLight();
+        if (this.scene) {
+            this.scene.children = [];
+        }
+        this.models = [];
+        this.renderedModelVoxels = {};
     }
 
     softDisplay() {
         if (this.loadingTextures > 0) {
             return;
         }
+        this.checkModelVoxelsVisibility();
         this.renderer.render(this.scene, this.camera);
     }
 
-    drawModelDefinition(modelDefinition, x, y, z, voxelSize) {
+    getCameraViewPosition() {
+        return {
+            x: this.camera.position.x,
+            y: -this.camera.position.y + 100,
+            z: this.camera.position.z
+        };
+    }
+
+    checkModelVoxelsVisibility() {
+        const camPos = this.getCameraViewPosition();
+        for (const model of this.models) {
+            const distanceToCamera = Math.sqrt(Math.pow(camPos.x - model.x, 2) + Math.pow(camPos.y - model.y, 2) + Math.pow(camPos.z - model.z, 2));
+            const meshes = this.renderedModelVoxels[model.modelId];
+            if (distanceToCamera > 512) {
+                if (meshes && meshes.length > 0) {
+                    for (const mesh of meshes) {
+                        this.scene.remove(mesh);
+                    }
+                    delete this.renderedModelVoxels[model.modelId];
+                }
+            } else {
+                if (!meshes || meshes.length === 0) {
+                    this.drawModelDefinition(model.modelDefinition, model.x, model.y, model.z, model.voxelSize, model.modelId);
+                }
+            }
+        }
+    }
+
+    drawModelDefinition(modelDefinition, x, y, z, voxelSize, modelId) {
+        const camPos = this.getCameraViewPosition();
+        const distanceToCamera = Math.sqrt(Math.pow(camPos.x - x, 2) + Math.pow(camPos.y - y, 2) + Math.pow(camPos.z - z, 2));
+        if (modelId && this.models.find((model) => model.modelId === modelId) === undefined) {
+            this.models.push({modelId, modelDefinition, x, y, z, voxelSize});
+        }
+        if (distanceToCamera > 512) {
+            return;
+        }
+        z += voxelSize / 2;
+        let meshes = [];
         for (const voxel of modelDefinition.voxels) {
             if (voxel.color) {
-                this.drawColoredVoxel(voxel, modelDefinition.colors[voxel.color], x, y, z, voxelSize);
+                meshes = meshes.concat(this.drawColoredVoxel(voxel, modelDefinition.colors[voxel.color], x, y, z, voxelSize, modelId));
             } else if (voxel.texture) {
-                this.drawTexturedVoxel(voxel, voxel.texture, x, y, z, voxelSize);
+                meshes = meshes.concat(this.drawTexturedVoxel(voxel, voxel.texture, x, y, z, voxelSize, modelId));
             }
         }
+        this.renderedModelVoxels[modelId] = meshes;
     }
 
-    drawColoredVoxel(voxel, color, bx, by, bz, voxelSize) {
+    drawColoredVoxel(voxel, color, bx, by, bz, voxelSize, userData) {
         if (voxel.x.constructor === String && voxel.x.startsWith("range:")) {
             const rangeParts = this.parseRange(voxel.x);
+            let meshes = [];
             for (let x = rangeParts[0]; x <= rangeParts[1]; x++) {
-                this.drawColoredVoxel({...voxel, x}, color, bx, by, bz, voxelSize);
+                meshes = meshes.concat(this.drawColoredVoxel({...voxel, x}, color, bx, by, bz, voxelSize, userData));
             }
-            return;
+            return meshes;
         }
         if (voxel.y.constructor === String && voxel.y.startsWith("range:")) {
             const rangeParts = this.parseRange(voxel.y);
+            let meshes = [];
             for (let y = rangeParts[0]; y <= rangeParts[1]; y++) {
-                this.drawColoredVoxel({...voxel, y}, color, bx, by, bz, voxelSize);
+                meshes = meshes.concat(this.drawColoredVoxel({...voxel, y}, color, bx, by, bz, voxelSize, userData));
             }
-            return;
+            return meshes;
         }
         if (voxel.z.constructor === String && voxel.z.startsWith("range:")) {
             const rangeParts = this.parseRange(voxel.z);
+            let meshes = [];
             for (let z = rangeParts[0]; z <= rangeParts[1]; z++) {
-                this.drawColoredVoxel({...voxel, z}, color, bx, by, bz, voxelSize);
+                meshes = meshes.concat(this.drawColoredVoxel({...voxel, z}, color, bx, by, bz, voxelSize, userData));
             }
-            return;
+            return meshes;
         }
         const fx = bx + voxel.x * voxelSize;
         const fy = by + voxel.y * voxelSize;
         const fz = bz + voxel.z * voxelSize;
-        this.drawRect(fx, fy, voxelSize, voxelSize, color, fz, false, voxelSize, false);
+        return [this.drawRect(fx, fy, voxelSize, voxelSize, color, fz, false, voxelSize, false, userData)];
     }
 
-    drawTexturedVoxel(voxel, texture, bx, by, bz, voxelSize) {
+    drawTexturedVoxel(voxel, texture, bx, by, bz, voxelSize, userData) {
         if (voxel.x.constructor === String && voxel.x.startsWith("range:")) {
             const rangeParts = this.parseRange(voxel.x);
+            let meshes = [];
             for (let x = rangeParts[0]; x <= rangeParts[1]; x++) {
-                this.drawTexturedVoxel({...voxel, x}, texture, bx, by, bz, voxelSize);
+                meshes = meshes.concat(this.drawTexturedVoxel({...voxel, x}, texture, bx, by, bz, voxelSize, userData));
             }
-            return;
+            return meshes;
         }
         if (voxel.y.constructor === String && voxel.y.startsWith("range:")) {
             const rangeParts = this.parseRange(voxel.y);
+            let meshes = [];
             for (let y = rangeParts[0]; y <= rangeParts[1]; y++) {
-                this.drawTexturedVoxel({...voxel, y}, texture, bx, by, bz, voxelSize);
+                meshes = meshes.concat(this.drawTexturedVoxel({...voxel, y}, texture, bx, by, bz, voxelSize, userData));
             }
-            return;
+            return meshes;
         }
         if (voxel.z.constructor === String && voxel.z.startsWith("range:")) {
             const rangeParts = this.parseRange(voxel.z);
+            let meshes = [];
             for (let z = rangeParts[0]; z <= rangeParts[1]; z++) {
-                this.drawTexturedVoxel({...voxel, z}, texture, bx, by, bz, voxelSize);
+                meshes = meshes.concat(this.drawTexturedVoxel({...voxel, z}, texture, bx, by, bz, voxelSize, userData));
             }
-            return;
+            return meshes;
         }
         const fx = bx + voxel.x * voxelSize;
         const fy = by + voxel.y * voxelSize;
         const fz = bz + voxel.z * voxelSize;
-        this.drawTexturedRect(fx, fy, voxelSize, voxelSize, texture, fz, false, voxelSize);
+        return [this.drawTexturedRect(fx, fy, voxelSize, voxelSize, texture, fz, false, voxelSize, userData)];
     }
 
     parseRange(range) {

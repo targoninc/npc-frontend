@@ -11,6 +11,8 @@ export class MapDrawer {
             volcano: [
                 this.getImage("volcano_1"),
                 this.getImage("volcano_2"),
+                this.getImage("volcano_3"),
+                this.getImage("volcano_4"),
             ],
             desert: [
                 this.getImage("desert_1"),
@@ -25,10 +27,23 @@ export class MapDrawer {
             ],
             building: this.getImage("house"),
             brick: this.getImage("brick"),
+            roof: this.getImage("roof")
         };
         this.tileModels = {
-            desert: [Models.palm]
+            desert: [Models.palm],
+            volcano: [Models.stones],
+            valley: [Models.grass],
+            forest: [
+                Models.tree,
+                Models.tree2,
+            ],
         };
+        this.tileChances = {
+            desert: 0.1,
+            volcano: 0.2,
+            valley: 0.3,
+            forest: 0.3,
+        }
         this.renderer = new ThreeJsDrawer(canvas, this.textures);
         this.renderer.setOnTexturesLoaded(() => {
             this.redraw();
@@ -97,7 +112,8 @@ export class MapDrawer {
     drawBuilding(building) {
         const {x, y} = this.getBuildingCoordinates(building);
         const tileAtPosition = this.getTileAt(building.coordinates.x, building.coordinates.y);
-        this.renderer.drawModelDefinition(Models.house, x, y, tileAtPosition.height * this.heightModifier, this.getTileSize() / 10);
+        const id = (x * 100000 + y).toString();
+        this.renderer.drawModelDefinition(Models.house, x, y, tileAtPosition.height * this.heightModifier, this.getTileSize() / 10, id);
     }
 
     drawTile(tile) {
@@ -119,10 +135,13 @@ export class MapDrawer {
         }
 
         if (this.tileModels[tile.type]) {
-            const hasModel = NumberGenerator.random(0, 100, tileSeed, true) < 10;
+            const hasModel = NumberGenerator.random(0, 100, tileSeed, true) < this.tileChances[tile.type] * 100;
             if (hasModel && !this.buildingOnTile(tile)) {
-                const model = this.tileModels[tile.type][0];
-                this.renderer.drawModelDefinition(model, coords.x, coords.y, tile.height * this.heightModifier, this.getTileSize() / 10);
+                const modelSeed = tile.y * 1000 + tile.x;
+                const modelIndex = NumberGenerator.random(0, this.tileModels[tile.type].length, modelSeed, true);
+                const model = this.tileModels[tile.type][modelIndex];
+                const id = (tile.x * 100000 + tile.y).toString();
+                this.renderer.drawModelDefinition(model, coords.x, coords.y, tile.height * this.heightModifier, this.getTileSize() / 10, id);
             }
         }
     }
@@ -175,6 +194,11 @@ export class MapDrawer {
         return image;
     }
 
+    saveCameraPosition() {
+        this.cache.setItem('offset', JSON.stringify(this.offset));
+        this.cache.setItem('zoom', this.zoom);
+    }
+
     move(x, y) {
         const canvasFactor = this.canvas.clientWidth / this.mapSize;
         x = (x / canvasFactor);
@@ -182,18 +206,19 @@ export class MapDrawer {
         this.offset.x += x;
         this.offset.y += y;
         this.renderer.updateCameraPosition(this.offset, this.zoom);
-        this.cache.setItem('offset', JSON.stringify(this.offset));
-        this.cache.setItem('zoom', this.zoom);
+        this.saveCameraPosition();
     }
 
     zoomIn() {
         this.zoom *= this.zoomChange;
         this.renderer.updateCameraPosition(this.offset, this.zoom);
+        this.saveCameraPosition();
     }
 
     zoomOut() {
         this.zoom /= this.zoomChange;
         this.renderer.updateCameraPosition(this.offset, this.zoom);
+        this.saveCameraPosition();
     }
 
     /**
@@ -202,8 +227,14 @@ export class MapDrawer {
      */
     drawMap(map) {
         this.map = map;
+        this.renderer.cleanScene();
         this.renderer.clear(this.offset, this.zoom);
-        this.drawTiles();
+        //this.drawBackground();
+        this.map.tiles.forEach(tile => {
+            this.drawTile(tile);
+        });
+        this.drawBuildings(this.map.buildings);
+        this.renderer.softDisplay();
     }
 
     redraw() {
@@ -212,15 +243,5 @@ export class MapDrawer {
 
     drawBackground() {
         this.renderer.drawRect(0, 0, this.mapSize, this.mapSize, 0xff0000, 1, false);
-    }
-
-    drawTiles() {
-        this.renderer.cleanScene();
-        //this.drawBackground();
-        this.map.tiles.forEach(tile => {
-            this.drawTile(tile);
-        });
-        this.drawBuildings(this.map.buildings);
-        this.renderer.softDisplay();
     }
 }
